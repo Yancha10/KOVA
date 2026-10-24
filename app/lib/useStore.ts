@@ -1,0 +1,17 @@
+'use client';
+import {useState,useEffect,useRef,useCallback} from 'react';
+import {Store,emptyStore,mergeStores} from './engine';
+export function useStore(accountId:string,signedIn:boolean){
+ const [state,setState]=useState<Store>(emptyStore),[ready,setReady]=useState(false),[sync,setSync]=useState('Cargando…');
+ const ref=useRef(state),revision=useRef(0),dirty=useRef(false),busy=useRef(false),mounted=useRef(true);const key='kova-v1-'+accountId;
+ const cache=useCallback(()=>{try{localStorage.setItem(key,JSON.stringify({state:ref.current,revision:revision.current,dirty:dirty.current}));}catch{setSync('Almacenamiento local lleno: exporta una copia');}},[key]);
+ const flush=useCallback(async()=>{if(busy.current||!dirty.current)return;if(!signedIn){setSync('Guardado en este dispositivo');cache();return;}busy.current=true;setSync('Sincronizando…');let again=false;
+  try{const snapshot=ref.current;const r=await fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({state:snapshot,revision:revision.current})});const body:any=await r.json();if(r.status===409&&body.state){ref.current=mergeStores(body.state,ref.current);setState(ref.current);revision.current=body.revision;dirty.current=true;again=true;}else if(!r.ok)throw new Error(body.error||'Sin conexión');else{revision.current=body.revision;dirty.current=ref.current!==snapshot;setSync(dirty.current?'Cambios pendientes':'Guardado en la nube');again=dirty.current;}cache();}catch(e:any){setSync(e.message==='Failed to fetch'?'Sin conexión · copia local':e.message);cache();}finally{busy.current=false;if(again&&mounted.current)setTimeout(()=>void flush(),500);}
+ },[signedIn,cache]);
+ useEffect(()=>{mounted.current=true;let cancelled=false;async function load(){let stored:any=null;try{stored=JSON.parse(localStorage.getItem(key)||'null');if(stored?.state?.schema===1){ref.current=stored.state;revision.current=stored.revision||0;dirty.current=!!stored.dirty;}}catch{}
+ if(signedIn){try{const r=await fetch('/api/state',{cache:'no-store'});const cloud:any=await r.json();if(!r.ok)throw new Error(cloud.error||'Nube no disponible');revision.current=cloud.revision||0;if(cloud.state)ref.current=dirty.current?mergeStores(cloud.state,ref.current):cloud.state;else dirty.current=true;setSync(dirty.current?'Cambios pendientes':'Guardado en la nube');}catch(e:any){setSync(e.message||'Sin conexión · copia local');}}else setSync('Guardado en este dispositivo');
+ if(!cancelled){setState(ref.current);setReady(true);cache();if(dirty.current)void flush();}}
+ void load();const interval=setInterval(()=>void flush(),15000);const refresh=async()=>{if(dirty.current){void flush();return;}if(!signedIn||busy.current)return;try{const r=await fetch('/api/state',{cache:'no-store'});if(r.ok){const d:any=await r.json();if(d.state&&d.revision>revision.current){revision.current=d.revision;ref.current=d.state;setState(d.state);cache();}}}catch{}};window.addEventListener('online',refresh);window.addEventListener('focus',refresh);return()=>{cancelled=true;mounted.current=false;clearInterval(interval);window.removeEventListener('online',refresh);window.removeEventListener('focus',refresh);};},[key,signedIn,cache,flush]);
+ const mutate=useCallback((fn:(s:Store)=>Store)=>{const next=fn(ref.current);ref.current=next;dirty.current=true;setState(next);setSync(signedIn?'Cambios pendientes':'Guardado en este dispositivo');cache();setTimeout(()=>void flush(),600);},[cache,flush,signedIn]);
+ return {state,mutate,ready,sync,retry:flush};
+}
