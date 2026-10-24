@@ -15,7 +15,8 @@ Lee primero [la guía de continuidad](docs/AI_HANDOFF.md) y [las instrucciones p
 - Rutas manuales H0-H5 y M0-M4; no se autoriza automáticamente un movimiento libre.
 - Registro de clases y open gym, resultado, series, RPE, minutos y patrones cargados.
 - Marcas editables, gráficos con datos reales, diario y exportación CSV.
-- Cronómetro AMRAP, EMOM e intervalos; pausa, reinicio y sonido opcional.
+- Timer Lab independiente: AMRAP, for time, EMOM, Tabata, intervalos, libre e híbrido con parciales. Cuenta previa, pausa, recuperación local, sonido y vibración opcionales.
+- Edición Athlete con temas claro, oscuro y automático; navegación táctil, sesiones por bloques y paneles por pestañas.
 - Importación local de PDF con texto, DOCX, TXT, MD y JSON. Vista previa editable y confirmación antes de activar.
 - Reconocimiento de la plantilla original del plan de 24 semanas.
 - Puente manual con ChatGPT mediante petición y JSON, sin API de OpenAI.

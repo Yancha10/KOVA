@@ -69,7 +69,11 @@ Frontend React con TypeScript sobre Vinext y Vite. Backend desplegado como Cloud
 | --- | --- |
 | `app/page.tsx` | Obtiene identidad del servidor y monta la app cliente |
 | `app/components/TrainingApp.tsx` | Navegación, dashboard, formularios, calendario, progreso, coach, biblioteca, importador y cronómetro |
-| `app/globals.css` | Sistema visual y adaptación a pantallas pequeñas |
+| `app/globals.css` | Estilos originales y formularios compartidos |
+| `app/touch.css` | Edición Athlete, superficies claro/oscuro y adaptación táctil |
+| `app/components/TouchUI.tsx` | Inicio compacto, temas, programa por tarjetas, sesión por bloques y menú Más |
+| `app/components/TimerStudio.tsx` | Interfaz de Timer Lab, persistencia local y controles de entrenamiento |
+| `app/lib/timer.ts` | Cálculo puro de fases, tiempo, restauración y validación del timer |
 | `app/lib/engine.ts` | Tipos, fechas, programación, fusión, validación, recuperación, dosis, adaptación, rutas y parser |
 | `app/lib/useStore.ts` | Estado React, caché local, sincronización, revisiones y reintentos |
 | `app/lib/base-plan.json` | Plan base completo de 72 sesiones |
@@ -265,13 +269,37 @@ La clave se mantiene en estado de la ventana del importador y no se incluye en `
 
 La interfaz pide confirmar que el proyecto no tiene facturación activada, pero la app no puede verificarlo. No prometas ausencia de cargos si el usuario introduce una clave de un proyecto facturable. La cuota gratuita y el tratamiento de datos dependen de Google y pueden cambiar. La llamada real a Gemini no se ha probado en esta entrega.
 
-## 11 Cronómetro y comportamiento móvil
+## 11 Edición Athlete y Timer Lab
 
-Usa `Date.now()` más tiempo acumulado para reducir deriva durante pausas de renderizado. Puede pausar, reiniciar y emitir sonido mediante Web Audio cuando el usuario lo activa. Las fases EMOM e intervalos utilizan los datos disponibles del bloque.
+La revisión visual posterior añade `app/touch.css`, `app/components/TouchUI.tsx`, `app/components/TimerStudio.tsx`, `app/lib/timer.ts` y `tests/timer.test.ts`. `touch.css` se carga después del CSS original y define superficies semánticas para ambos temas. No cambies colores aislados sin comprobar claro y oscuro.
 
-No se guarda un cronómetro activo después de cerrar su ventana, recargar o cerrar la app. No hay notificaciones push, recordatorios programados ni Wake Lock implementado. Los avisos pueden no sonar con la pantalla bloqueada. El manifest no incluye por sí mismo un service worker para abrir toda la aplicación sin red.
+### Interfaz táctil
 
-En planes importados, un texto que describa intervalos no siempre produce automáticamente `interval`; solo habrá fases estructuradas si el plan contiene esos campos. La cuenta atrás general sigue estando disponible en bloques de acondicionamiento.
+- Inicio compacto centrado en la siguiente sesión, semana, recuperación y accesos rápidos.
+- Navegación inferior de cinco acciones: Inicio, Plan, Timer, Progreso y Más.
+- `PlanDeck` muestra una sesión a la vez, con selector de semana, pestañas de día y gesto horizontal en móvil.
+- `SessionFlow` muestra un bloque cada vez, texto legible, anterior/siguiente y acción de bloque completado. El checklist es de revisión local de esa ventana, no sustituye el registro de entrenamiento.
+- Progreso se separa en Resumen, Marcas y Diario; Coach en Hoy, Preguntar y Rutas.
+- El menú Más reúne biblioteca, importación, coach, perfil y copias.
+- CrossFit, HYROX y Open gym en el inicio personalizan el acceso rápido al timer y el contexto visual. No generan ni reemplazan el programa activo.
+
+### Apariencia
+
+Claro, oscuro o automático según `prefers-color-scheme`. La preferencia se guarda localmente en `kova-theme`, no en D1. Un script inicial aplica el tema antes de hidratar. `ThemeSwitch` coordina todas sus instancias con el evento `kova-theme-change`, escucha cambios de almacenamiento de otras ventanas y actualiza el modo automático cuando cambia el sistema. La disciplina elegida se guarda localmente en `kova-discipline`.
+
+### Timer independiente
+
+`TimerStudio` permite AMRAP, for time con cap, EMOM, Tabata, intervalos configurables, cronómetro libre e híbrido con transiciones manuales. La cuenta atrás previa es configurable. Tabata e intervalos incluyen la recuperación de la última ronda en su tiempo total.
+
+El formato híbrido contiene ocho carreras alternadas con ocho estaciones habituales; nombres y orden se usan como referencia de entrenamiento. No configura cargas, distancias ni acreditación de cumplimiento de un reglamento de carrera. Las estaciones son editables.
+
+El reloj usa `Date.now()` y tiempo acumulado. Conserva estado y parciales localmente por cuenta y perfil en `kova-timer-<accountId>-<profileId>`. Cerrar la vista permite seguir el reloj y volver desde el botón flotante; recargar restaura su referencia temporal. No es sincronización del timer entre dispositivos. Los relojes muy antiguos se restauran pausados como protección.
+
+Se puede pausar, reiniciar, marcar rondas o estaciones, terminar y llevar tiempo y parciales al formulario de registro. El usuario confirma duración, esfuerzo y notas antes de guardar en su diario. El sonido usa Web Audio después de una interacción; la vibración es opcional y solo funciona si el navegador la soporta. Se intenta adquirir Screen Wake Lock cuando está disponible y se vuelve a intentar al recuperar visibilidad.
+
+No hay push ni ejecución garantizada de sonido con pantalla bloqueada. La app puede reconstruir tiempo transcurrido al volver a primer plano, pero eso no garantiza avisos en segundo plano. No hay service worker para abrir toda la app sin red.
+
+Los intervalos estructurados de un bloque se conservan al abrirlo en el timer. Un texto importado que describa intervalos sin el campo `interval` sigue sin producir automáticamente fases semánticas completas.
 
 ## 12 Desarrollo y despliegue
 
@@ -309,7 +337,7 @@ Comprobado en esta sesión de trabajo:
 
 - TypeScript sin emisión.
 - Compilación de producción.
-- Seis pruebas automatizadas del motor: aislamiento por perfil y ventana de carga, suspensión por síntomas, dosis con evaluación reciente, fusión y borrados, calendario y parser.
+- Seis pruebas originales del motor: aislamiento por perfil y ventana de carga, suspensión por síntomas, dosis con evaluación reciente, fusión y borrados, calendario y parser.
 - Lectura del PDF original de 34 páginas con PDF.js y detección de su plantilla.
 - En navegador de vista previa: check-in, apertura de sesión, cronómetro, registro, estadísticas, lectura de texto, separación en bloques editables y activación de un programa importado.
 - Resultado `succeeded` del despliegue y pantalla de acceso privado en la URL publicada.
@@ -328,6 +356,8 @@ Las pruebas HTTP directas desde el contenedor hacia la vista previa no pudieron 
 
 Los datos de prueba se crearon en la vista previa local de la app, no se incorporaron como historial de ejemplo al plan ni al código.
 
+La edición Athlete añade seis pruebas de timer, para un total de doce: cuenta previa, límites EMOM, trabajo y recuperación Tabata, reloj ascendente y caps, restauración temporal y transiciones híbridas. Se revisó el diseño a ancho de 390 px mediante un iframe de QA y se probó el flujo híbrido de parcial, pausa, finalización y formulario de registro. Esto no equivale a pruebas en un iPhone o reloj físico.
+
 ## 14 Evolución recomendada
 
 Prioridad inmediata antes de ampliar funciones:
@@ -338,7 +368,7 @@ Prioridad inmediata antes de ampliar funciones:
 4. Endurecer validación de caché y backups, límites por bytes y errores específicos; evaluar uso de esquemas estrictos compartidos.
 5. Separar volumen estructurado de texto libre para adaptar series y descansos sin sustituciones por regex.
 6. Revisar la detección de plantilla PDF: evitar que un documento modificado sea reemplazado silenciosamente por el plan base.
-7. Revisar legibilidad y accesibilidad en móviles reales, foco, contraste y pantallas pequeñas.
+7. Completar pruebas en dispositivos táctiles reales, sistema de temas automático, accesibilidad y avisos de audio en segundo plano.
 8. Añadir historial y resolución explícita de ajustes, sin modificar el plan original.
 
 Antes de vender:
