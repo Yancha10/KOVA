@@ -13,5 +13,5 @@ export function useStore(accountId:string,signedIn:boolean){
  if(!cancelled){setState(ref.current);setReady(true);cache();if(dirty.current)void flush();}}
  void load();const interval=setInterval(()=>void flush(),15000);const refresh=async()=>{if(dirty.current){void flush();return;}if(!signedIn||busy.current)return;try{const r=await fetch('/api/state',{cache:'no-store'});if(r.ok){const d:any=await r.json();if(d.state&&d.revision>revision.current){revision.current=d.revision;ref.current=d.state;setState(d.state);cache();}}}catch{}};window.addEventListener('online',refresh);window.addEventListener('focus',refresh);return()=>{cancelled=true;mounted.current=false;clearInterval(interval);window.removeEventListener('online',refresh);window.removeEventListener('focus',refresh);};},[key,signedIn,cache,flush]);
  const mutate=useCallback((fn:(s:Store)=>Store)=>{const next=fn(ref.current);ref.current=next;dirty.current=true;setState(next);setSync(signedIn?'Cambios pendientes':'Guardado en este dispositivo');cache();setTimeout(()=>void flush(),600);},[cache,flush,signedIn]);
- return {state,mutate,ready,sync,retry:flush};
+ return {state,mutate,ready,sync,retry:flush,getSnapshot:()=>ref.current};
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./touch.css";
+import "./retro.css";
 
 export const metadata: Metadata = {
   title: "KOVA | Tu entrenamiento evoluciona contigo",

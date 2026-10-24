@@ -23,6 +23,10 @@ Lee primero [la guía de continuidad](docs/AI_HANDOFF.md) y [las instrucciones p
 - Gemini opcional: clave introducida por el usuario, mantenida solo en memoria y enviada por HTTPS al servidor para esa petición. Solo debe usarse un proyecto sin facturación si se quiere evitar cargos. La disponibilidad de cuota gratuita depende de Google.
 - Guardado local de cambios pendientes, sincronización privada en D1 y control optimista de revisiones.
 - Copias completas JSON y restauración mediante fusión de registros.
+- Edición Afterglow: violetas, rosas y crema; cristal con desenfoque, animaciones de botones y respeto a movimiento reducido.
+- Dictado web cuando el navegador lo soporte, con alternativa de dictado del teclado; organización local de una sesión en bloques y revisión antes de guardar. También prepara registros hablados sin inventar esfuerzo o duración ausentes.
+- Escuela de movimientos: 23 fichas con pasos, claves, errores, escalado y enlaces a demostraciones oficiales. Acceso contextual desde cada bloque reconocido.
+- Google Drive opcional con OAuth propio: sincronización manual, fusión de copias y verificación de bytes guardados. **Necesita configurar un Client ID de Google**; el complemento de ChatGPT no proporciona esa autorización a la app. Consulta [la configuración de Drive](docs/GOOGLE_DRIVE.md).
 
 ## Qué significa adaptativo
 

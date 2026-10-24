@@ -388,3 +388,40 @@ No añadas una licencia MIT o equivalente por inferencia: el usuario ha autoriza
 ## 15 Qué no debe perderse en una continuación
 
 El objetivo no es una app de estadísticas ficticias ni otro generador de WOD aleatorios. Se trata de un programa con dirección, seguimiento real y ajustes explicados. Conserva el acabado visual, la revisión de documentos y la posibilidad de operar sin pagar una API. No conviertas una limitación conocida en una capacidad anunciada sin implementarla y verificarla.
+
+
+## 16 Edición Afterglow: voz, aprendizaje y Google Drive
+
+Esta revisión conserva el programa de 72 sesiones, D1 y las reglas del coach. Añade:
+
+- `app/retro.css`, cargado tras `touch.css`: paletas lavanda/rosa/crema y ciruela; vidrio con `backdrop-filter` y alternativa sólida; animación de pulsación; `prefers-reduced-motion` y `prefers-reduced-transparency`.
+- Inicio con Dictar entreno, Registrar resultado y Ver tutoriales. Menú Más agrupado por acciones, guía de inicio y secciones separadas de perfil/copias. La navegación lateral usa palabras concretas.
+- `app/components/VoiceComposer.tsx` y `app/lib/voice.ts`: SpeechRecognition/webkitSpeechRecognition cuando existe, captura solo iniciada por botón, fin/aborto al cerrar, texto intermedio y errores. Si no está disponible, se usa el micrófono del teclado o texto. El servicio del navegador puede enviar audio fuera del dispositivo; se explica antes de pulsar. KOVA no guarda audio. No hay transcripción propia de archivos MP3 ni se garantiza voz offline o en todos los webviews.
+- El parser de voz es local y determinista, no un LLM. Convierte números españoles habituales, detecta secciones y sus minutos, reconoce Tabata e intervalos sencillos con rondas/trabajo/descanso. Conserva instrucciones y cantidades en texto; no estructura cada repetición, porcentaje o carga ni comprende todas las frases. Los tiempos ausentes se proponen y se señalan. Dictados de varios días detectados se remiten al importador. Siempre hay revisión editable y botón final de guardar.
+- Guardar un dictado crea un programa de una sesión en la biblioteca y lo abre sin sustituir el programa activo. El histórico se conserva. Para varios días se utiliza el importador existente. El registro hablado abre un borrador con texto original; minutos y esfuerzo ausentes quedan vacíos y deben completarse antes de guardar. No hay guardado autónomo de prescripciones médicas ni promoción de rutas.
+- `app/lib/movements.ts` contiene 23 fichas de técnica general. `MovementSchool.tsx` tiene búsqueda por alias, categorías, pasos, errores, escalado y enlaces a CrossFit/Concept2. Los vídeos se abren en la página oficial; no están descargados ni todos traducidos al español. Cada bloque ofrece fichas por coincidencia textual. El contenido arbitrario importado puede no tener ficha; existe un enlace al catálogo oficial. Volver al bloque conserva su índice y checklist.
+- `app/components/DriveSync.tsx`, `app/lib/drive.ts`, `app/lib/config.ts` y `docs/GOOGLE_DRIVE.md`: integración OAuth directa con Google Identity Services, independiente del complemento Drive de ChatGPT. La herramienta de elegibilidad de conectores de Sites no estaba disponible; no se añadieron declaraciones ni se reutilizaron tokens del complemento. No hay clave, secreto ni token en el repositorio. La configuración de Google sigue pendiente.
+
+### Drive: contrato exacto
+
+Usa `drive.appdata`, carpeta interna de datos de KOVA en Google Drive. No aparece en Mi unidad. Los tokens OAuth se conservan exclusivamente en memoria, con caducidad; cerrar/recargar exige reconectar. El Client ID es público y puede configurarse una vez en `app/lib/config.ts` y redesplegarse, o introducirse en cada navegador. El usuario elige Google y marca consentimiento. Conectar no lee ni sube el histórico. Solo Sincronizar ahora hace lectura, fusión y escritura.
+
+Se guarda el `Store` completo de la cuenta (todos sus perfiles y programas importados), nunca audio, tokens, claves de Gemini ni el timer local. El espacio se identifica por SHA-256 de una etiqueta fija y el ID de cuenta KOVA. Para recuperar desde otro dispositivo hacen falta las mismas cuentas KOVA/Google y el mismo proyecto OAuth. El namespace no constituye autorización: Google controla el acceso y el token nunca se envía al backend de KOVA.
+
+Cada sincronización lista con paginación las copias del namespace, las valida y fusiona con `mergeStores`, aplica la fusión local conservando cambios posteriores y crea una nueva copia inmutable. Se relee el archivo guardado y se comparan exactamente sus bytes. No se sobrescriben ni borran copias antiguas. Si dos dispositivos escriben a la vez, quedan dos ramas que la siguiente sincronización integra. No se promete que un dispositivo reciba una escritura simultánea hasta que vuelva a sincronizar. Siguen aplicando las limitaciones de `updatedAt` y relojes descritas en la sección 9.
+
+Límites: 1,8 MB por snapshot, 2000 snapshots y 24 MB descargados por sincronización; se detiene sin escribir ante exceso o archivo inválido. Hace falta consolidación/retención antes de gran volumen comercial; no se elimina historia automáticamente. Timeout de 45 segundos por petición y lectura por stream con límite. No se reintenta una escritura automáticamente si el resultado es incierto. Google Drive no sustituye D1: D1 mantiene el guardado automático existente y Drive es manual. Desconectar en KOVA borra el token en memoria, conserva copias y no revoca Google; existe enlace para gestionar permisos.
+
+### Verificación de esta revisión
+
+- Suite ampliada de 19 pruebas: las 12 anteriores y siete adicionales para paginación/fusión/borrados de snapshots, validación de namespace/tamaño, escritura y readback, fallo sin reintento, números/tiempos de dictado, datos desconocidos y borradores de registro.
+- El adaptador Drive se prueba con respuestas HTTP simuladas, nunca con datos reales del usuario. La prueba no verifica OAuth real, consentimiento de Google, CORS ni una escritura alojada. Falta Client ID y acceso autorizado para comprobarlos.
+- Navegador de vista previa: texto de dictado → cuatro bloques → guardado de plan de una sesión → apertura → tutorial contextual de Wall ball. El programa activo se conserva. Los datos de prueba solo están en vista previa.
+- También se revisó la interfaz a 390 px, temas claro/oscuro, búsqueda de Toes-to-bar, acceso al panel Drive sin configuración y registro hablado sin minutos/RPE: el formulario los mantiene vacíos. No se ha iniciado una sesión de Google ni una carga real.
+- La transcripción de audio real, dispositivos físicos y bloqueos de ventanas del navegador siguen sin verificarse.
+
+### Fuentes y evolución
+
+Las fichas enlazan las páginas oficiales específicas del movimiento en CrossFit y las guías técnicas de RowErg/SkiErg en Concept2. La integración usa documentación oficial de Google: token model, appDataFolder y multipart upload.
+
+El usuario ha preguntado por WOD externos. Investigación: CrossFit publica WOD públicos en https://www.crossfit.com/workout/; Kriger publica sesiones públicas en https://krigertraining.com/wod/ además de programas por suscripción; HYROX publica algunos entrenos semanales y ofrece programación para afiliados mediante Performance Hub. No se ha implementado importación automática ni se ha verificado una API pública de estas tres fuentes. Propuesta: bandeja con fuente/fecha/enlace, revisión de condiciones y parsers propios antes de añadir al calendario. No presentar un scraping como integración oficial ni redistribuir programación privada.
