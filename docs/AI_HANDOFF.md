@@ -453,7 +453,7 @@ La validación está en `validStore` (`validRecord`, `validNutrition`) y la usan
 
 ### Versión abierta en GitHub Pages
 
-Ver `docs/GITHUB_PAGES.md`. `pnpm run build:pages` construye solo el cliente (`pages/main.tsx` monta `TrainingApp` con `accountId="local"` y `signedIn={false}`) en `dist-pages/`, que se publica en la rama `gh-pages`. El Site de ChatGPT sigue funcionando igual y no se ha cambiado su privacidad.
+Ver `docs/GITHUB_PAGES.md`. `pnpm run build:pages` construye solo el cliente en `dist-pages/` (desde la sección 18, con la interfaz de `web/`), que se publica en la rama `gh-pages`. El Site de ChatGPT sigue funcionando igual y no se ha cambiado su privacidad.
 
 ### Verificación de esta revisión
 
@@ -469,3 +469,43 @@ Ver `docs/GITHUB_PAGES.md`. `pnpm run build:pages` construye solo el cliente (`p
   - la persistencia de los datos al recargar.
 - No probado: Safari real en iPhone, sincronización con Google Drive entre dos dispositivos, ni la publicación en el Site de ChatGPT.
 - `pnpm run lint` sigue fallando por errores que ya existían en los archivos minificados (`TrainingApp.tsx`, `engine.ts`, `useStore.ts`…). Los archivos nuevos pasan el linter sin errores.
+
+## 18 Rediseño profundo de la versión abierta (`web/`)
+
+El usuario pidió una revisión a fondo porque la versión abierta seguía pareciéndose a la interfaz antigua, recargada. Desde esta revisión, GitHub Pages usa una interfaz nueva en `web/`. El Site de ChatGPT conserva `app/components/TrainingApp.tsx`.
+
+Principios que pidió el usuario y que hay que mantener:
+
+- Barras superior e inferior fijas, sin saltos entre pantallas.
+- Pocas decisiones durante el entreno: la sesión se recorre en fichas, un bloque cada vez, con botón «Siguiente» y gesto lateral, en vez de una página larga.
+- Cronómetro central grande con forma de cronómetro y escena synthwave animada; rondas tocando la pantalla.
+- Estética iOS (cristal, controles nativos, tipografía del sistema) con la paleta violeta, rosa y crema.
+- Sin cuentas: datos en el dispositivo, con copias y Google Drive opcionales.
+
+Qué conserva del motor (`app/lib/engine.ts`):
+
+- check-in y `readiness`;
+- `adaptSession` (reducción de volumen y sustitución del motor);
+- dosis de gimnasia según la última evaluación;
+- rutas H y M manuales;
+- coach por reglas;
+- historial al cambiar de programa;
+- límites de `validStore`.
+
+Ninguna regla del motor se ha cambiado.
+
+Verificado en Chromium móvil (390 × 844) bajo `/KOVA/`:
+
+- el check-in y el ajuste de la sesión;
+- las fichas y el gesto lateral;
+- las demostraciones animadas;
+- el cronómetro desde un bloque de motor, con la cuenta atrás, las rondas y el paso del resultado al registro;
+- el registro y el paso a la siguiente sesión;
+- el plan, la escuela de movimientos y los programas;
+- el informe, las evaluaciones, los récords y el diario;
+- nutrición;
+- el perfil, el coach, el tema oscuro, las copias y la pantalla de Drive.
+
+`pnpm run typecheck`, `pnpm test` (24), `pnpm run build` y `pnpm run build:pages` son correctos. Sin probar: Safari en iPhone real, el modo sin conexión en un dispositivo y Google Drive con un Client ID real.
+
+`eslint web/src` marca avisos del compilador de React (lecturas de `localStorage` en efectos y refs del cronómetro). Son patrones deliberados para el rendimiento del reloj y no afectan al funcionamiento.

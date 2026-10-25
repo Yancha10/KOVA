@@ -40,4 +40,4 @@ Actualiza `docs/AI_HANDOFF.md` cuando cambien arquitectura, modelo de datos, reg
 
 ## Versión abierta en GitHub Pages
 
-La versión pública sin ChatGPT se construye con `pnpm run build:pages` y se publica en la rama `gh-pages`. Sigue `docs/GITHUB_PAGES.md`: trabaja siempre en `main` y no edites `gh-pages` a mano.
+La versión pública sin ChatGPT vive en `web/` (interfaz propia que reutiliza `app/lib`), se construye con `pnpm run build:pages` y se publica en la rama `gh-pages`. Sigue `docs/GITHUB_PAGES.md`: trabaja siempre en `main` y no edites `gh-pages` a mano.

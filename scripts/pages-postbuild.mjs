@@ -18,4 +18,5 @@ const manifest = {
 fs.writeFileSync(path.join(out, "manifest.webmanifest"), JSON.stringify(manifest));
 fs.copyFileSync(path.join(out, "index.html"), path.join(out, "404.html"));
 fs.writeFileSync(path.join(out, ".nojekyll"), "");
+fs.copyFileSync(path.resolve("web/public/sw.js"), path.join(out, "sw.js"));
 console.log("dist-pages listo para GitHub Pages");
