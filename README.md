@@ -6,6 +6,10 @@ Un espacio privado de entrenamiento en español. Incluye un programa real de 24 
 
 Lee primero [la guía de continuidad](docs/AI_HANDOFF.md) y [las instrucciones para agentes](AGENTS.md). Incluyen arquitectura, modelo de datos, reglas exactas, importación, sincronización, despliegue, pruebas realizadas y limitaciones pendientes. Repositorio público de código: https://github.com/Yancha10/KOVA. Esto no hace públicos los registros de la app.
 
+## Versión abierta (GitHub Pages)
+
+KOVA también se publica como app estática en **https://yancha10.github.io/KOVA/**, sin iniciar sesión y sin servidor: cada persona guarda sus datos en su dispositivo y puede sincronizarlos con su Google Drive. Para construirla y publicarla, ver `docs/GITHUB_PAGES.md`.
+
 ## Funcionalidad
 
 - Perfiles de atletas separados dentro de una cuenta; calendario y programa por perfil.

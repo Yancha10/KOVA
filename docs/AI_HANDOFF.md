@@ -425,3 +425,47 @@ Límites: 1,8 MB por snapshot, 2000 snapshots y 24 MB descargados por sincroniza
 Las fichas enlazan las páginas oficiales específicas del movimiento en CrossFit y las guías técnicas de RowErg/SkiErg en Concept2. La integración usa documentación oficial de Google: token model, appDataFolder y multipart upload.
 
 El usuario ha preguntado por WOD externos. Investigación: CrossFit publica WOD públicos en https://www.crossfit.com/workout/; Kriger publica sesiones públicas en https://krigertraining.com/wod/ además de programas por suscripción; HYROX publica algunos entrenos semanales y ofrece programación para afiliados mediante Performance Hub. No se ha implementado importación automática ni se ha verificado una API pública de estas tres fuentes. Propuesta: bandeja con fuente/fecha/enlace, revisión de condiciones y parsers propios antes de añadir al calendario. No presentar un scraping como integración oficial ni redistribuir programación privada.
+
+## 17 Edición iOS: nutrición, récords, informe y versión abierta en GitHub Pages
+
+Revisión del 25 de octubre de 2026, hecha con Claude a petición del usuario.
+
+### Qué cambia para el usuario
+
+- **Estilo iOS** (`app/ios.css`, cargado después de `retro.css`): tipografía del sistema de Apple, barra superior y dock de cristal, controles segmentados, listas agrupadas, interruptores y hojas inferiores que se cierran deslizando. Se mantiene la paleta Afterglow (violetas, rosas y crema).
+- **Dock inferior:** Inicio, Plan, **cronómetro central**, Nutrición y Progreso. El botón central es un cronómetro dibujado (`app/components/Stopwatch.tsx`) con aguja y arco animados; cuando el timer corre (`timerActive`), la aguja acelera y una onda late alrededor. «Más» pasa a la barra superior.
+- **Tema:** en la barra superior es un botón de un toque (claro ↔ oscuro). En Más hay un control segmentado Claro / Oscuro / Automático. Se sustituyó el desplegable anterior, que en móvil era poco fiable y en oscuro mostraba fondos desplazados.
+- **Nutrición** (`app/components/Nutrition.tsx`, `app/lib/nutrition.ts`): pestaña con Hoy (botella de agua animada, proteína, kcal y macros del día según si se entrena, 8 hábitos con interruptor), Mi plan (Mifflin-St Jeor, actividad y objetivo, macros para días de entreno y descanso, reparto en comidas), Peso (registro, media de 7 días y gráfica) y Guía (hidratación, proteína, carbohidratos, peri-entreno, suplementos con evidencia, sueño, menús y compra). Las cifras son orientativas y se indica que no sustituyen a un dietista-nutricionista.
+- **Récords** (Progreso → Récords; `app/components/Records.tsx`, `app/lib/records.ts`): más de 150 movimientos y WODs (halterofilia, fuerza, gimnásticos, cardio, Girls, Héroes) con buscador sin tildes, filtros y opción de escribir uno a mano. Unidades: kg, reps, tiempo, rondas+reps, m, s y cal. Detalle con gráfica, historial y tabla de porcentajes para kg.
+- **Informe** (Progreso → Informe; `app/components/Report.tsx`): documento vivo con gráficas seleccionables (marcas, sesiones, carga, esfuerzo, recuperación y peso), consejos de progresión por reglas transparentes (constancia, RPE, carga, marcas, nutrición y agua) más el coach existente, mejores marcas y resumen nutricional. «Descargar informe completo» genera un HTML autónomo con gráficas SVG y tablas, imprimible a PDF.
+
+### Modelo de datos
+
+`Store` mantiene `schema: 1` y añade dos colecciones **opcionales**, `records` y `nutrition`, con fusión por `id` y `updatedAt` y marcadores `_deleted` como el resto. Las copias antiguas sin esas claves siguen siendo válidas.
+
+- `records`: `{id, profileId, date, name (≤80), unit ∈ kg|reps|tiempo|rondas|m|s|cal, value (texto ≤20), note?}`.
+- `nutrition` según `kind`:
+  - `plan`, con id `np-<perfil>`: peso, altura, edad, sexo `h|m`, actividad `sed|lig|mod|alt` y objetivo `perder|mantener|ganar`.
+  - `day`, con id `nd-<perfil>-<fecha>`: agua en ml (0-20000), proteína en g (0-1000), `train` (`true|false|null`, donde `null` deduce si hay registro ese día) y `habits` (claves fijas booleanas).
+  - `weight`, con id `nw-<perfil>-<fecha>`: kg (20-400) y cintura (`null` o 30-300).
+
+La validación está en `validStore` (`validRecord`, `validNutrition`) y la usan tanto el servidor (`/api/state`) como la importación de copias.
+
+### Versión abierta en GitHub Pages
+
+Ver `docs/GITHUB_PAGES.md`. `pnpm run build:pages` construye solo el cliente (`pages/main.tsx` monta `TrainingApp` con `accountId="local"` y `signedIn={false}`) en `dist-pages/`, que se publica en la rama `gh-pages`. El Site de ChatGPT sigue funcionando igual y no se ha cambiado su privacidad.
+
+### Verificación de esta revisión
+
+- `pnpm run typecheck`: sin errores.
+- `pnpm test`: 24 pruebas superadas, 5 de ellas nuevas en `tests/records-nutrition.test.ts` (búsqueda, puntuación, mejor marca, objetivos nutricionales, validación y fusión).
+- `pnpm run build` (Site) y `pnpm run build:pages`: correctos.
+- Probado en Chromium móvil (390 × 844) sirviendo `dist-pages/` bajo `/KOVA/`:
+  - el plan nutricional, el agua, la proteína y los hábitos;
+  - el peso con su gráfica;
+  - los récords del buscador y los escritos a mano, con su detalle y porcentajes;
+  - el informe y su descarga;
+  - el cambio de tema y el dock;
+  - la persistencia de los datos al recargar.
+- No probado: Safari real en iPhone, sincronización con Google Drive entre dos dispositivos, ni la publicación en el Site de ChatGPT.
+- `pnpm run lint` sigue fallando por errores que ya existían en los archivos minificados (`TrainingApp.tsx`, `engine.ts`, `useStore.ts`…). Los archivos nuevos pasan el linter sin errores.

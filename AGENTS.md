@@ -29,6 +29,7 @@ Usa Node 24 para las pruebas con TypeScript nativo y respeta el lockfile de pnpm
 pnpm run typecheck
 pnpm test
 pnpm run build
+pnpm run build:pages   # versión abierta de GitHub Pages (ver docs/GITHUB_PAGES.md)
 ```
 
 Prueba el flujo afectado en el navegador cuando esté disponible. Indica con precisión qué se comprobó y qué no. El despliegue correcto no demuestra por sí solo sincronización entre dos dispositivos ni acceso real a Gemini.
@@ -36,3 +37,7 @@ Prueba el flujo afectado en el navegador cuando esté disponible. Indica con pre
 ## Entrega
 
 Actualiza `docs/AI_HANDOFF.md` cuando cambien arquitectura, modelo de datos, reglas, integración con IA, despliegue o limitaciones. Explica los cambios y las verificaciones sin afirmar que funciones opcionales o pendientes están terminadas.
+
+## Versión abierta en GitHub Pages
+
+La versión pública sin ChatGPT se construye con `pnpm run build:pages` y se publica en la rama `gh-pages`. Sigue `docs/GITHUB_PAGES.md`: trabaja siempre en `main` y no edites `gh-pages` a mano.
