@@ -7,6 +7,7 @@ import { LineChartSVG } from "../../../app/components/Sheet";
 import { celebrate } from "../../../app/lib/fx";
 import { Seg } from "../ui";
 import { BADGES, unlocked, teamBoard, evalComparison } from "../extras";
+import { MonthCalendar, Challenges } from "../live";
 
 const fmt = (d: string) => localDate(d).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 const metricKeys = Object.keys(markMeta);
@@ -38,7 +39,7 @@ export default function ProgressView({
   switchTo: (id: string) => void;
   addProfile: () => void;
 }) {
-  const [pane, setPane] = useState<"report" | "marks" | "records" | "badges" | "team" | "diary">("report");
+  const [pane, setPane] = useState<"report" | "calendar" | "marks" | "records" | "badges" | "team" | "diary">("report");
   const [metric, setMetric] = useState(metricKeys[0]);
   const marks = forProfile(state.marks, p.id).filter((m) => m.metric === metric).sort((a, b) => a.date.localeCompare(b.date));
   const logs = forProfile(state.logs, p.id).sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt - a.updatedAt);
@@ -52,6 +53,7 @@ export default function ProgressView({
         onChange={setPane}
         items={[
           ["report", "Informe"],
+          ["calendar", "Calendario"],
           ["marks", "Marcas"],
           ["records", "Récords"],
           ["badges", "Logros"],
@@ -60,6 +62,7 @@ export default function ProgressView({
         ]}
       />
       {pane === "report" && <Report state={state} p={p} plan={plan} done={done} />}
+      {pane === "calendar" && <MonthCalendar state={state} p={p} />}
       {pane === "team" && <Team state={state} p={p} profiles={profiles} plans={plans} switchTo={switchTo} addProfile={addProfile} />}
       {pane === "badges" && <Badges state={state} p={p} plan={plan} done={done} />}
       {pane === "records" && <Records state={state} p={p} save={(e) => put("records", e)} notice={notice} celebrate={() => celebrate()} />}
@@ -203,6 +206,7 @@ function Badges({ state, p, plan, done }: { state: Store; p: Profile; plan: Plan
   const got = new Set(unlocked({ state, p, plan, done }));
   return (
     <div className="ios-stack">
+      <Challenges state={state} p={p} />
       <div className="ios-hero-mini">
         <span className="ios-kicker">Logros</span>
         <b className="ios-bignum">

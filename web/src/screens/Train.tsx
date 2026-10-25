@@ -5,6 +5,7 @@ import { relatedMovements, Movement } from "../../../app/lib/movements";
 import { FIGURE_FOR } from "../figures";
 import { FigureThumb, RingMini, Toggle, blockLabels, blockShort, blockIndex } from "../ui";
 import { presetFromBlock, TimerPreset } from "./TimerView";
+import { CountUp, dayMessage, lateWeeks, haptic, MicButton } from "../live";
 
 const fmt = (d: string) => localDate(d).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
 
@@ -25,6 +26,8 @@ export default function Train({
   shareWeek,
   others,
   guide,
+  heroAction,
+  reschedule,
 }: {
   state: Store;
   p: Profile;
@@ -42,6 +45,8 @@ export default function Train({
   shareWeek: () => void;
   others: Profile[];
   guide: (b: Session["blocks"][number], next: () => void) => void;
+  heroAction: (a: string) => void;
+  reschedule: (weeks: number) => void;
 }) {
   const adapted = adaptSession(session, state, p);
   const ctx = context(state, p);
@@ -55,6 +60,7 @@ export default function Train({
   const go = (n: number) => {
     const next = Math.max(0, Math.min(steps.length - 1, n));
     setDir(next > cur ? 1 : -1);
+    if (next !== cur) haptic(8);
     setStep(next);
   };
   const swipe = useRef<{ x: number; y: number } | null>(null);
@@ -72,6 +78,8 @@ export default function Train({
   const weekDone = weekSessions.filter((s) => done.has(s.id)).length;
   const minutes7 = myLogs.filter((l) => dayDiff(today(), l.date) >= 0 && dayDiff(today(), l.date) < 7).reduce((a, l) => a + (Number(l.minutes) || 0), 0);
   const streak = weekStreak(myLogs.map((l) => l.date));
+  const msg = dayMessage(state, p, session, diff, isDone);
+  const late = isDone ? 0 : lateWeeks(date);
   const color = blocks[cur] ? "d" + blockIndex[blocks[cur].type] : "d4";
   return (
     <section className="k-page">
@@ -100,21 +108,42 @@ export default function Train({
         </div>
         <div className="k-hero-stats">
           <div>
-            <b>{weekDone}/{weekSessions.length}</b>
+            <b><CountUp value={weekDone} />/{weekSessions.length}</b>
             <small>esta semana</small>
           </div>
           <div>
-            <b>{streak}</b>
+            <b><CountUp value={streak} /></b>
             <small>{streak === 1 ? "semana seguida" : "semanas seguidas"}</small>
           </div>
           <div>
-            <b>{minutes7}′</b>
+            <b><CountUp value={minutes7} suffix="′" /></b>
             <small>últimos 7 días</small>
           </div>
         </div>
-        <button className="k-hero-share" onClick={shareWeek}>
-          <Share2 size={15} /> Compartir mi semana
-        </button>
+        <div className="k-hero-msg">
+          <b style={{ fontSize: 20 }}>{msg.icon}</b>
+          <span>{msg.text}</span>
+        </div>
+        <div className="k-hero-actions">
+          {!isDone && (
+            <button className="k-hero-share" onClick={() => heroAction("box")}>
+              <Play size={15} /> Modo box
+            </button>
+          )}
+          {msg.action === "water" && (
+            <button className="k-hero-share" onClick={() => heroAction("water")}>
+              💧 +500 ml
+            </button>
+          )}
+          {msg.action === "check" && (
+            <button className="k-hero-share" onClick={() => heroAction("check")}>
+              <HeartPulse size={15} /> Check-in
+            </button>
+          )}
+          <button className="k-hero-share light" onClick={shareWeek}>
+            <Share2 size={15} /> Compartir semana
+          </button>
+        </div>
       </div>
       <div className="k-days">
         {weekSessions.map((s, i) => (
@@ -127,6 +156,16 @@ export default function Train({
           </button>
         ))}
       </div>
+      {late > 0 && (
+        <button className="k-tip k-lately" onClick={() => reschedule(late)}>
+          <b style={{ fontSize: 20, flex: "none" }}>🗓️</b>
+          <span>
+            Vas {late} {late === 1 ? "semana" : "semanas"} por detrás del calendario
+            <small>Toca para mover el plan y retomarlo desde hoy, sin perder nada</small>
+          </span>
+          <ArrowRight size={16} />
+        </button>
+      )}
       {ctx.check ? (
         <button className={"k-tip " + (ctx.factor === 0 ? "warn" : ctx.factor < 1 ? "" : "ok")} onClick={openCheck}>
           <HeartPulse size={20} />
@@ -348,7 +387,10 @@ function LogCard({ session, p, previous, draft, save, others }: { session: Sessi
           <>
             <label className="ios-field">
               <span>Notas</span>
-              <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Escalas, pesos, sensaciones…" />
+              <span style={{ display: "flex", gap: 8 }}>
+                <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Escalas, pesos, sensaciones…" style={{ flex: 1 }} />
+                <MicButton onText={(t) => setNote((n: string) => (n ? n + " " : "") + t)} />
+              </span>
             </label>
             <div className="ios-group">
               <div className="ios-row">

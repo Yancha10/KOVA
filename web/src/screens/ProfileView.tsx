@@ -5,6 +5,7 @@ import DriveSync from "../../../app/components/DriveSync";
 import { extractFile, planFromText } from "../../../app/lib/documents";
 import { Seg, Toggle } from "../ui";
 import { getTimerPref, setTimerPref } from "./TimerView";
+import { Photos } from "../live";
 
 type Theme = "light" | "dark" | "system";
 export function applyTheme(mode: Theme) {
@@ -43,7 +44,7 @@ export default function ProfileView({
   integrate: (s: Store) => void;
   notice: (s: string) => void;
 }) {
-  const [pane, setPane] = useState<"athletes" | "coach" | "settings" | "data">("athletes");
+  const [pane, setPane] = useState<"athletes" | "photos" | "coach" | "settings" | "data">("athletes");
   return (
     <section className="k-page">
       <Seg
@@ -52,6 +53,7 @@ export default function ProfileView({
         onChange={setPane}
         items={[
           ["athletes", "Atletas"],
+          ["photos", "Fotos"],
           ["coach", "Coach"],
           ["settings", "Ajustes"],
           ["data", "Datos"],
@@ -89,6 +91,7 @@ export default function ProfileView({
           <p className="ios-foot">Cada atleta tiene su plan, días, rutas de pino y muscle-up, registros y nutrición por separado.</p>
         </>
       )}
+      {pane === "photos" && <Photos p={p} notice={notice} />}
       {pane === "coach" && <Coach state={state} p={p} />}
       {pane === "settings" && <Settings />}
       {pane === "data" && <Data state={state} snapshot={snapshot} integrate={integrate} notice={notice} />}

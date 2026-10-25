@@ -4,6 +4,7 @@ import { Store, Profile, Plan, sessionDate, localDate, weekOf, live } from "../.
 import { movements, Movement, plain } from "../../../app/lib/movements";
 import { FIGURE_FOR } from "../figures";
 import { FigureStage, FigureThumb, Seg } from "../ui";
+import { LoadCalc } from "../live";
 
 const fmt = (d: string) => localDate(d).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
 
@@ -34,7 +35,7 @@ export default function PlanView({
   importPlan: () => void;
   addCalendar: () => void;
 }) {
-  const [pane, setPane] = useState<"weeks" | "moves" | "programs">("weeks");
+  const [pane, setPane] = useState<"weeks" | "moves" | "loads" | "programs">("weeks");
   const nowWeek = Math.min(plan.weeks, weekOf(p));
   const [week, setWeek] = useState(() => {
     const s = plan.sessions.find((x) => x.id === next);
@@ -55,6 +56,7 @@ export default function PlanView({
         items={[
           ["weeks", "Semanas"],
           ["moves", "Movimientos"],
+          ["loads", "Cargas"],
           ["programs", "Programas"],
         ]}
       />
@@ -157,6 +159,7 @@ export default function PlanView({
           </div>
         </>
       )}
+      {pane === "loads" && <LoadCalc state={state} p={p} />}
       {pane === "programs" && (
         <>
           <div className="ios-group">

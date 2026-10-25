@@ -537,3 +537,28 @@ Todo en `web/src/extras.ts`:
 ### 18.4 Barra inferior anclada
 
 La barra inferior quedaba flotando sobre el borde del iPhone porque `:root` reservaba la zona segura con `padding` y, además, la barra añadía su propio margen. Ahora `:root` define `--safeT` y `--safeB` con `env(safe-area-inset-*)`, sin padding. `body` es `position: fixed; inset: 0`. Las barras superior e inferior son `position: fixed` y suman la zona segura a su altura (`.k-tabs-in` llega hasta el borde y rellena la zona del indicador de inicio). Las páginas compensan ambas alturas. No vuelvas a añadir padding de zona segura en `:root`.
+
+### 18.5 App viva: resumen, modo box, cargas, calendario, retos, fotos y voz
+
+Todo en `web/src/live.tsx`, salvo donde se indica:
+
+- **Paleta:** violeta de base (`--violet`) con amarillo (`--sun`), azul (`--blue`, `--sky`) y verde retro (`--leaf`, `--olive`). El verde marca lo completado y la buena recuperación. `useDaypart` pone `data-daypart` (dawn, day o night) en `<html>` y la cabecera de Entrenar cambia de degradado según la hora.
+- **Cabecera de Entrenar:**
+  - `dayMessage` decide un mensaje según el momento: toca hoy, pendiente, entreno hecho o descanso.
+  - Ofrece una acción rápida: modo box, +500 ml de agua o check-in.
+  - Los números suben contando (`CountUp`).
+- **Plan en orden:** la siguiente sesión es la primera sin hacer, aunque su fecha haya pasado. Si va más de 2 días tarde, Entrenar ofrece «Reorganizar», que mueve `startDate` semanas enteras con `shiftStart`. El historial no cambia.
+- **Resumen al terminar:** `Summary` sustituye al aviso simple tras guardar. Muestra minutos, RPE, semana, racha, logros nuevos y la siguiente sesión, con opción de compartir. Esos logros se marcan como vistos para no repetir la medalla.
+- **Modo box:** `BoxMode` muestra la sesión a pantalla completa, un bloque cada vez, con «Hecho ✓», gesto lateral y accesos a reloj, guía y descanso. Al terminar lleva al registro.
+- **Cargas** (Plan → Cargas): `LoadCalc` calcula el peso desde un récord en kg o un 1RM manual, con discos por lado en colores de competición.
+- **Calendario** (Progreso → Calendario): `MonthCalendar` colorea las sesiones del plan, las clases o extras y la recuperación de cada día.
+- **Retos del mes:** `Challenges`, en Progreso → Logros.
+- **Fotos** (Perfil → Fotos): se guardan en IndexedDB (`kova-photos`), reducidas a 1100 px. Comparador deslizante. No entran en copias ni en Drive.
+- **Dictado:** `MicButton` usa la Web Speech API si existe, en las notas del registro.
+- **Vibración:** `haptic` vibra en el cambio de paso, al guardar y en el resumen.
+
+No implementado, y por qué:
+
+- **Avisos con la pantalla bloqueada:** en iOS, una web solo puede enviarlos con un servidor de push; los recordatorios por calendario cubren el caso.
+- **Apple Salud:** no es accesible desde la web.
+- **Coach con IA:** necesitaría una clave de API y un coste por uso; el coach actual funciona con reglas.

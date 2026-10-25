@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { BarChart3, CalendarDays, Dumbbell, Apple } from "lucide-react";
 import baseJSON from "../../app/lib/base-plan.json";
-import { Plan, Profile, Entry, Session, live, forProfile, sessionDate, dayDiff, today, uid } from "../../app/lib/engine";
+import { Plan, Profile, Entry, Session, live, forProfile, sessionDate, today, uid } from "../../app/lib/engine";
 import { Movement } from "../../app/lib/movements";
 import Nutrition from "../../app/components/Nutrition";
 import { Sheet } from "../../app/components/Sheet";
@@ -9,10 +9,12 @@ import StopwatchIcon from "../../app/components/Stopwatch";
 import { celebrate } from "../../app/lib/fx";
 import { useLocalStore } from "./store";
 import { GradientDefs, useToast } from "./ui";
-import { BADGES, unlocked, shareWeek, calendarFile, downloadText } from "./extras";
+import { BADGES, unlocked, shareWeek, calendarFile, downloadText, weekStreak } from "./extras";
+import { useDaypart, Summary, SummaryData, BoxMode, shiftStart, haptic } from "./live";
+import { dayId, emptyDay } from "../../app/lib/nutrition";
 import Train from "./screens/Train";
 import PlanView, { MovementDetail } from "./screens/PlanView";
-import TimerView, { TimerPreset } from "./screens/TimerView";
+import TimerView, { TimerPreset, presetFromBlock } from "./screens/TimerView";
 import ProgressView, { MarkForm } from "./screens/ProgressView";
 import Guided from "./screens/Guided";
 import ProfileView, { ProfileForm, CheckForm, ImportPlan, applyTheme, readTheme } from "./screens/ProfileView";
@@ -45,6 +47,9 @@ export default function App() {
   const [timer, setTimer] = useState<{ preset: TimerPreset | null; key: number; label: string | null; sessionId: string | null }>({ preset: null, key: 0, label: null, sessionId: null });
   const [running, setRunning] = useState(false);
   const [pop, setPop] = useState<{ icon: string; name: string } | null>(null);
+  const [summary, setSummary] = useState<SummaryData | null>(null);
+  const [box, setBox] = useState(false);
+  useDaypart();
 
   useEffect(() => {
     applyTheme(readTheme());
@@ -87,7 +92,8 @@ export default function App() {
   const planIds = new Set(plan.sessions.map((s) => s.id));
   const done = new Set(logs.filter((l) => l.sessionId && planIds.has(l.sessionId)).map((l) => l.sessionId as string));
   const ordered = p ? [...plan.sessions].sort((a, b) => sessionDate(p, a).localeCompare(sessionDate(p, b))) : [];
-  const next = ordered.find((s) => !done.has(s.id) && dayDiff(sessionDate(p, s), today()) >= 0) || ordered.find((s) => !done.has(s.id)) || ordered[ordered.length - 1];
+  // El plan avanza en orden: la siguiente es la primera sin hacer, aunque su fecha ya haya pasado (Entrenar ofrece reorganizar).
+  const next = ordered.find((s) => !done.has(s.id)) || ordered[ordered.length - 1];
   const session: Session | undefined = (cur && plan.sessions.find((s) => s.id === cur)) || next;
 
   const notice = toast.show;
@@ -183,12 +189,52 @@ export default function App() {
                 put("logs", { ...e, id: uid(), profileId: id, sessionId: same ? e.sessionId : null, kind: same ? "open" : "class", updatedAt: Date.now() });
               });
               setDrafts((d) => ({ ...d, [session.id]: "" }));
-              celebrate(140);
+              celebrate(160);
+              haptic([20, 30, 40]);
               const nx = ordered.find((s) => s.id !== session.id && !done.has(s.id));
+              const before = new Set(unlocked({ state, p, plan, done }));
+              const done2 = new Set([...done, session.id]);
+              const st2 = { ...state, logs: [...state.logs.filter((x) => x.id !== e.id), e] };
+              const after = unlocked({ state: st2, p, plan, done: done2 });
+              const fresh = after.filter((id) => !before.has(id)).map((id) => BADGES.find((b) => b.id === id)!.name);
+              try {
+                localStorage.setItem("kova-badges-" + p.id, JSON.stringify(after));
+              } catch {
+                /* sin almacenamiento */
+              }
+              const wk = plan.sessions.filter((s) => s.week === session.week);
+              setSummary({
+                title: session.title,
+                minutes: Number(e.minutes),
+                rpe: Number(e.rpe),
+                streak: weekStreak(forProfile(st2.logs, p.id).map((l) => l.date)),
+                weekDone: wk.filter((s) => done2.has(s.id)).length,
+                weekTotal: wk.length,
+                total: plan.sessions.length,
+                done: plan.sessions.filter((s) => done2.has(s.id)).length,
+                badges: fresh,
+                next: nx ? nx.title : null,
+              });
               setCur(null);
               if (nx) setSteps((s) => ({ ...s, [nx.id]: 0 }));
-              notice(nx ? `¡Guardada! Siguiente: ${nx.title}` : "¡Programa completado!");
               document.querySelector(".k-view")?.scrollTo({ top: 0 });
+            }}
+            heroAction={(a) => {
+              if (a === "box") setBox(true);
+              if (a === "check") setSheet({ type: "check" });
+              if (a === "water") {
+                const t = today();
+                const d = (state.nutrition || []).find((x) => x.id === dayId(p.id, t) && !x._deleted) || emptyDay(p.id, t);
+                put("nutrition", { ...d, water: Math.min(20000, (d.water || 0) + 500), updatedAt: Date.now() });
+                haptic(15);
+                notice("+500 ml de agua");
+              }
+            }}
+            reschedule={(w) => {
+              if (!confirm(`¿Mover todo el plan ${w} ${w === 1 ? "semana" : "semanas"} hacia delante para retomarlo desde ahora? Tu historial no cambia.`)) return;
+              putProfile(shiftStart(p, w));
+              setCur(null);
+              notice("Plan reorganizado: retomas desde esta semana");
             }}
             openCheck={() => setSheet({ type: "check" })}
             openMove={(m) => setSheet({ type: "move", m })}
@@ -429,6 +475,40 @@ export default function App() {
             }}
           />
         </Sheet>
+      )}
+      {box && (
+        <BoxMode
+          session={session}
+          start={Math.min(steps[session.id] ?? 0, session.blocks.length - 1)}
+          close={() => setBox(false)}
+          finish={() => {
+            setBox(false);
+            setSteps((st) => ({ ...st, [session.id]: session.blocks.length }));
+            notice("¡Bloques hechos! Registra el resultado");
+          }}
+          timer={(i) => {
+            setBox(false);
+            if (i < 0) startTimer({ mode: "rest", seconds: 90 }, `Descanso · ${session.title}`);
+            else {
+              const b = session.blocks[i];
+              startTimer(presetFromBlock(b.title, b.text, b.minutes, b.interval, session.cap), `S${session.week} · ${session.title} · ${b.title}`);
+            }
+          }}
+          guide={(i) => {
+            const b = session.blocks[i];
+            setSheet({ type: "guide", title: b.title, text: b.text, minutes: b.minutes, next: () => undefined });
+          }}
+        />
+      )}
+      {summary && (
+        <Summary
+          d={summary}
+          close={() => setSummary(null)}
+          share={async () => {
+            const r = await shareWeek({ state, p, plan, done });
+            if (r === "downloaded") notice("Imagen guardada: súbela a tu historia");
+          }}
+        />
       )}
       {pop && (
         <div className="k-badgepop" role="status">
