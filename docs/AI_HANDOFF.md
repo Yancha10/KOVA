@@ -515,3 +515,13 @@ Verificado en Chromium móvil (390 × 844) bajo `/KOVA/`:
 A petición del usuario, la paleta de `web/src/theme.css` suma amarillo (`--sun`) y azul (`--blue`, `--sky`, `--navy`) a los violetas y rosas. Los degradados `--grad` (amarillo → rosa), `--grad-cool` (cielo → azul → violeta) y `--grad-hero` (amarillo → rosa → violeta → azul) dan el carácter visual. Los tipos de bloque usan azul (técnica), violeta (fuerza), rosa (motor), amarillo (activación) y cielo (calma).
 
 Entrenar abre con una cabecera animada con tres datos rápidos: sesiones de la semana, semanas seguidas entrenando (de lunes a domingo, con al menos un registro) y minutos de los últimos 7 días.
+
+### 18.2 Logros, tarjeta semanal y recordatorios
+
+Todo en `web/src/extras.ts`:
+
+- **Logros:** 20 en `BADGES`, cada uno con una función `ok(ctx)` pura sobre el Store. Se ven en Progreso → Logros. `App.tsx` guarda los ya vistos en `localStorage` (`kova-badges-<perfil>`) y celebra solo los nuevos. La primera vez registra el estado actual sin celebrar.
+- **Compartir mi semana:** botón en la cabecera de Entrenar. Dibuja en canvas una imagen de 1080 × 1920 para historias con sesiones, minutos, semanas seguidas, RPE medio y récords de la semana. Usa `navigator.share` con archivo si el sistema lo admite; si no, la descarga.
+- **Recordatorios:** Plan → Semanas → «Recordatorios en mi calendario» genera un `.ics` con las sesiones pendientes de 2 a 12 semanas, a la hora elegida, con un aviso 30 minutos antes. Usa los días del perfil mediante `sessionDate`.
+
+`dayDiff(a, b)` es a − b en días: para «últimos 7 días» usa `dayDiff(today(), fecha)`.

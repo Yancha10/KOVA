@@ -9,6 +9,7 @@ import StopwatchIcon from "../../app/components/Stopwatch";
 import { celebrate } from "../../app/lib/fx";
 import { useLocalStore } from "./store";
 import { GradientDefs, useToast } from "./ui";
+import { BADGES, unlocked, shareWeek, calendarFile, downloadText } from "./extras";
 import Train from "./screens/Train";
 import PlanView, { MovementDetail } from "./screens/PlanView";
 import TimerView, { TimerPreset } from "./screens/TimerView";
@@ -26,6 +27,7 @@ type SheetState =
   | { type: "mark"; metric: string }
   | { type: "import" }
   | { type: "log"; log: Entry }
+  | { type: "calendar" }
   | null;
 
 export default function App() {
@@ -40,6 +42,7 @@ export default function App() {
   const [sheet, setSheet] = useState<SheetState>(null);
   const [timer, setTimer] = useState<{ preset: TimerPreset | null; key: number; label: string | null; sessionId: string | null }>({ preset: null, key: 0, label: null, sessionId: null });
   const [running, setRunning] = useState(false);
+  const [pop, setPop] = useState<{ icon: string; name: string } | null>(null);
 
   useEffect(() => {
     applyTheme(readTheme());
@@ -86,6 +89,35 @@ export default function App() {
   const session: Session | undefined = (cur && plan.sessions.find((s) => s.id === cur)) || next;
 
   const notice = toast.show;
+  const unlockedKey = p && session && ready ? "|" + unlocked({ state, p, plan, done }).join(",") : "";
+  useEffect(() => {
+    if (!p || !unlockedKey) return;
+    const key = "kova-badges-" + p.id;
+    let seen: string[] | null = null;
+    try {
+      seen = JSON.parse(localStorage.getItem(key) || "null");
+    } catch {
+      seen = null;
+    }
+    const now = unlockedKey.slice(1).split(",").filter(Boolean);
+    try {
+      localStorage.setItem(key, JSON.stringify(now));
+    } catch {
+      /* sin almacenamiento */
+    }
+    if (!seen) return;
+    const fresh = now.filter((id) => !seen!.includes(id));
+    fresh.forEach((id, i) => {
+      const b = BADGES.find((x) => x.id === id);
+      if (!b) return;
+      setTimeout(() => {
+        setPop({ icon: b.icon, name: b.name });
+        celebrate(170);
+        setTimeout(() => setPop(null), 2600);
+      }, 600 + i * 2900);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unlockedKey, p?.id]);
   if (!ready || !p || !session)
     return (
       <div className="k-loading">
@@ -150,6 +182,10 @@ export default function App() {
             openCheck={() => setSheet({ type: "check" })}
             openMove={(m) => setSheet({ type: "move", m })}
             startTimer={startTimer}
+            shareWeek={async () => {
+              const r = await shareWeek({ state, p, plan, done });
+              if (r === "downloaded") notice("Imagen guardada: súbela a tu historia");
+            }}
           />
         )}
         {route === "plan" && (
@@ -174,6 +210,7 @@ export default function App() {
               if (confirm(`¿Borrar el programa «${pl.name}»? Tus registros se conservan.`)) putPlan({ ...pl, _deleted: true, updatedAt: Date.now() });
             }}
             importPlan={() => setSheet({ type: "import" })}
+            addCalendar={() => setSheet({ type: "calendar" })}
           />
         )}
         <TimerView
@@ -339,6 +376,29 @@ export default function App() {
           />
         </Sheet>
       )}
+      {sheet?.type === "calendar" && (
+        <Sheet title="Recordatorios" close={() => setSheet(null)}>
+          <CalendarForm
+            make={(h, m, w) => {
+              const { text, count } = calendarFile({ state, p, plan, done }, h, m, w);
+              if (!count) {
+                notice("No hay sesiones pendientes en ese periodo");
+                return;
+              }
+              downloadText(`kova-${p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.ics`, text, "text/calendar");
+              setSheet(null);
+              notice(`${count} sesiones listas para añadir al calendario`);
+            }}
+          />
+        </Sheet>
+      )}
+      {pop && (
+        <div className="k-badgepop" role="status">
+          <span className="ic">{pop.icon}</span>
+          <small>Logro desbloqueado</small>
+          <b>{pop.name}</b>
+        </div>
+      )}
       {saveError && <div className="k-toast show">{saveError}</div>}
       {toast.node}
     </>
@@ -389,5 +449,41 @@ function EditLog({ log, save }: { log: Entry; save: (e: Entry) => void }) {
         Guardar
       </button>
     </form>
+  );
+}
+
+function CalendarForm({ make }: { make: (h: number, m: number, weeks: number) => void }) {
+  const [time, setTime] = useState("18:30");
+  const [weeks, setWeeks] = useState(4);
+  return (
+    <div className="ios-stack">
+      <p style={{ fontSize: 15, lineHeight: 1.45 }}>Creo un archivo de calendario con tus próximas sesiones y un aviso 30 minutos antes. Al abrirlo en el iPhone, el Calendario te pregunta si quieres añadirlas.</p>
+      <div className="ios-grid2">
+        <label className="ios-field">
+          <span>Hora del entreno</span>
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value || "18:30")} />
+        </label>
+        <label className="ios-field">
+          <span>Periodo</span>
+          <select value={weeks} onChange={(e) => setWeeks(Number(e.target.value))}>
+            {[2, 4, 8, 12].map((w) => (
+              <option key={w} value={w}>
+                {w} semanas
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <button
+        className="k-btn primary block"
+        onClick={() => {
+          const [h, m] = time.split(":").map(Number);
+          make(h || 18, m || 0, weeks);
+        }}
+      >
+        Crear recordatorios
+      </button>
+      <p className="ios-foot">Usa los días de entreno de tu perfil. Si cambias de días, vuelve a crearlos.</p>
+    </div>
   );
 }

@@ -6,6 +6,7 @@ import Records from "../../../app/components/Records";
 import { LineChartSVG } from "../../../app/components/Sheet";
 import { celebrate } from "../../../app/lib/fx";
 import { Seg } from "../ui";
+import { BADGES, unlocked } from "../extras";
 
 const fmt = (d: string) => localDate(d).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 const metricKeys = Object.keys(markMeta);
@@ -29,7 +30,7 @@ export default function ProgressView({
   addMark: (metric: string) => void;
   editLog: (l: Entry) => void;
 }) {
-  const [pane, setPane] = useState<"report" | "marks" | "records" | "diary">("report");
+  const [pane, setPane] = useState<"report" | "marks" | "records" | "badges" | "diary">("report");
   const [metric, setMetric] = useState(metricKeys[0]);
   const marks = forProfile(state.marks, p.id).filter((m) => m.metric === metric).sort((a, b) => a.date.localeCompare(b.date));
   const logs = forProfile(state.logs, p.id).sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt - a.updatedAt);
@@ -45,10 +46,12 @@ export default function ProgressView({
           ["report", "Informe"],
           ["marks", "Marcas"],
           ["records", "Récords"],
+          ["badges", "Logros"],
           ["diary", "Diario"],
         ]}
       />
       {pane === "report" && <Report state={state} p={p} plan={plan} done={done} />}
+      {pane === "badges" && <Badges state={state} p={p} plan={plan} done={done} />}
       {pane === "records" && <Records state={state} p={p} save={(e) => put("records", e)} notice={notice} celebrate={() => celebrate()} />}
       {pane === "marks" && (
         <div className="ios-stack">
@@ -182,5 +185,30 @@ export function MarkForm({ p, metric, save }: { p: Profile; metric: string; save
         Guardar evaluación
       </button>
     </form>
+  );
+}
+
+function Badges({ state, p, plan, done }: { state: Store; p: Profile; plan: Plan; done: Set<string> }) {
+  const got = new Set(unlocked({ state, p, plan, done }));
+  return (
+    <div className="ios-stack">
+      <div className="ios-hero-mini">
+        <span className="ios-kicker">Logros</span>
+        <b className="ios-bignum">
+          {got.size}
+          <small> de {BADGES.length}</small>
+        </b>
+        <div className="k-bar"><i style={{ width: (got.size / BADGES.length) * 100 + "%" }} /></div>
+      </div>
+      <div className="k-badges">
+        {BADGES.map((b) => (
+          <div key={b.id} className={"k-badge-card" + (got.has(b.id) ? " on" : "")}>
+            <span className="ic">{got.has(b.id) ? b.icon : "🔒"}</span>
+            <b>{b.name}</b>
+            <small>{b.hint}</small>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

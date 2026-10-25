@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, ExternalLink, Search, Upload, Check, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, Search, Upload, Check, Trash2, CalendarPlus } from "lucide-react";
 import { Store, Profile, Plan, sessionDate, localDate, weekOf, live } from "../../../app/lib/engine";
 import { movements, Movement, plain } from "../../../app/lib/movements";
 import { FIGURE_FOR } from "../figures";
@@ -19,6 +19,7 @@ export default function PlanView({
   activate,
   removePlan,
   importPlan,
+  addCalendar,
 }: {
   state: Store;
   p: Profile;
@@ -31,6 +32,7 @@ export default function PlanView({
   activate: (id: string) => void;
   removePlan: (pl: Plan) => void;
   importPlan: () => void;
+  addCalendar: () => void;
 }) {
   const [pane, setPane] = useState<"weeks" | "moves" | "programs">("weeks");
   const nowWeek = Math.min(plan.weeks, weekOf(p));
@@ -120,6 +122,9 @@ export default function PlanView({
               );
             })}
           </div>
+          <button className="k-btn cool block" onClick={addCalendar}>
+            <CalendarPlus /> Recordatorios en mi calendario
+          </button>
           {plan.subtitle && <p className="ios-foot" style={{ textAlign: "center" }}>{plan.subtitle}</p>}
         </>
       )}

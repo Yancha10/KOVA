@@ -337,3 +337,24 @@ html[data-theme="dark"] .ios-row-icon{color:var(--sun)}
 .k-hero-stats b{display:block;font:800 21px/1.05 var(--round)}
 .k-hero-stats small{font-size:11px;font-weight:700;opacity:.75}
 html[data-theme="dark"] .k-hero{color:#1B1230}
+
+/* ---------- Logros y extras ---------- */
+.k-hero-share{display:inline-flex;align-items:center;gap:6px;margin-top:10px;border:0;border-radius:999px;padding:8px 14px;background:rgba(36,24,58,.85);color:#fff;font:600 13.5px var(--font);transition:transform .25s var(--spring)}
+.k-hero-share:active{transform:scale(.94)}
+.k-bar{height:9px;border-radius:999px;background:rgba(255,255,255,.55);overflow:hidden;margin-top:6px}
+.k-bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--sun),var(--pink),var(--blue));animation:k-grow 1.1s var(--spring) both}
+@keyframes k-grow{from{width:0}}
+.k-badges{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:620px){.k-badges{grid-template-columns:repeat(3,1fr)}}
+.k-badge-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:14px 10px;border-radius:18px;background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow);opacity:.55}
+.k-badge-card.on{opacity:1;background:linear-gradient(160deg,color-mix(in srgb,var(--sun) 30%,var(--paper)),var(--paper) 55%,color-mix(in srgb,var(--sky) 22%,var(--paper)))}
+.k-badge-card .ic{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-size:27px;background:var(--ios-fill)}
+.k-badge-card.on .ic{background:conic-gradient(from 200deg,var(--sun),#FF9FB4,var(--purple),var(--blue),var(--sun));animation:k-wob 3.4s ease-in-out infinite}
+@keyframes k-wob{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+.k-badge-card b{font-size:13.5px}
+.k-badge-card small{font-size:11.5px;color:var(--muted);line-height:1.3}
+.k-badgepop{position:fixed;left:50%;top:34%;z-index:400;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;animation:k-pop .6s var(--spring) both}
+@keyframes k-pop{from{transform:translate(-50%,-50%) scale(.3);opacity:0}}
+.k-badgepop .ic{width:118px;height:118px;border-radius:50%;display:grid;place-items:center;font-size:58px;background:conic-gradient(from 200deg,var(--sun),#FF9FB4,var(--purple),var(--blue),var(--sun));box-shadow:0 16px 44px rgba(62,123,234,.4)}
+.k-badgepop small{margin-top:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--blue)}
+.k-badgepop b{white-space:nowrap;font:800 22px var(--round);padding:8px 18px;border-radius:999px;background:var(--paper);box-shadow:var(--shadow)}

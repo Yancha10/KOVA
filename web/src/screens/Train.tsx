@@ -1,5 +1,5 @@
-import React, { useRef, useState } from "react";
-import { ArrowRight, Check, Play, Timer, HeartPulse } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { ArrowRight, Check, Play, Timer, HeartPulse, Share2 } from "lucide-react";
 import { Store, Profile, Plan, Session, Entry, adaptSession, context, sessionDate, localDate, today, uid, dayDiff } from "../../../app/lib/engine";
 import { relatedMovements, Movement } from "../../../app/lib/movements";
 import { FIGURE_FOR } from "../figures";
@@ -22,6 +22,7 @@ export default function Train({
   openCheck,
   openMove,
   startTimer,
+  shareWeek,
 }: {
   state: Store;
   p: Profile;
@@ -36,6 +37,7 @@ export default function Train({
   openCheck: () => void;
   openMove: (m: Movement) => void;
   startTimer: (preset: TimerPreset, label: string) => void;
+  shareWeek: () => void;
 }) {
   const adapted = adaptSession(session, state, p);
   const ctx = context(state, p);
@@ -52,13 +54,19 @@ export default function Train({
     setStep(next);
   };
   const swipe = useRef<{ x: number; y: number } | null>(null);
+  const stepsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = stepsRef.current?.children[cur] as HTMLElement | undefined;
+    const box = stepsRef.current;
+    if (el && box) box.scrollTo({ left: el.offsetLeft - box.clientWidth / 2 + el.clientWidth / 2, behavior: "smooth" });
+  }, [cur, session.id]);
   const date = sessionDate(p, session);
   const diff = dayDiff(date, today());
   const when = diff === 0 ? "Hoy" : diff === 1 ? "Mañana" : diff < 0 && !isDone ? "Pendiente desde " + fmt(date) : fmt(date);
   const dc = (i: number) => "d" + (i % 3);
   const myLogs = state.logs.filter((l) => !l._deleted && l.profileId === p.id);
   const weekDone = weekSessions.filter((s) => done.has(s.id)).length;
-  const minutes7 = myLogs.filter((l) => dayDiff(l.date, today()) >= 0 && dayDiff(l.date, today()) < 7).reduce((a, l) => a + (Number(l.minutes) || 0), 0);
+  const minutes7 = myLogs.filter((l) => dayDiff(today(), l.date) >= 0 && dayDiff(today(), l.date) < 7).reduce((a, l) => a + (Number(l.minutes) || 0), 0);
   const streak = weekStreak(myLogs.map((l) => l.date));
   const color = blocks[cur] ? "d" + blockIndex[blocks[cur].type] : "d4";
   return (
@@ -100,6 +108,9 @@ export default function Train({
             <small>últimos 7 días</small>
           </div>
         </div>
+        <button className="k-hero-share" onClick={shareWeek}>
+          <Share2 size={15} /> Compartir mi semana
+        </button>
       </div>
       <div className="k-days">
         {weekSessions.map((s, i) => (
@@ -130,7 +141,7 @@ export default function Train({
           <ArrowRight size={16} />
         </button>
       )}
-      <div className="k-steps" role="tablist" aria-label="Partes de la sesión">
+      <div className="k-steps" role="tablist" aria-label="Partes de la sesión" ref={stepsRef}>
         {steps.map((l, i) => (
           <button key={i} role="tab" aria-selected={i === cur} className={`k-step ${i === cur ? "on" : ""} ${i === steps.length - 1 && isDone ? "ok" : ""} ${blocks[i] ? "d" + blockIndex[blocks[i].type] : "d4"}`} onClick={() => go(i)}>
             <b>{i === steps.length - 1 && isDone ? "✓" : i + 1}</b>
