@@ -509,3 +509,9 @@ Verificado en Chromium móvil (390 × 844) bajo `/KOVA/`:
 `pnpm run typecheck`, `pnpm test` (24), `pnpm run build` y `pnpm run build:pages` son correctos. Sin probar: Safari en iPhone real, el modo sin conexión en un dispositivo y Google Drive con un Client ID real.
 
 `eslint web/src` marca avisos del compilador de React (lecturas de `localStorage` en efectos y refs del cronómetro). Son patrones deliberados para el rendimiento del reloj y no afectan al funcionamiento.
+
+### 18.1 Paleta con amarillo y azul
+
+A petición del usuario, la paleta de `web/src/theme.css` suma amarillo (`--sun`) y azul (`--blue`, `--sky`, `--navy`) a los violetas y rosas. Los degradados `--grad` (amarillo → rosa), `--grad-cool` (cielo → azul → violeta) y `--grad-hero` (amarillo → rosa → violeta → azul) dan el carácter visual. Los tipos de bloque usan azul (técnica), violeta (fuerza), rosa (motor), amarillo (activación) y cielo (calma).
+
+Entrenar abre con una cabecera animada con tres datos rápidos: sesiones de la semana, semanas seguidas entrenando (de lunes a domingo, con al menos un registro) y minutos de los últimos 7 días.

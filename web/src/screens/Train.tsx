@@ -56,28 +56,50 @@ export default function Train({
   const diff = dayDiff(date, today());
   const when = diff === 0 ? "Hoy" : diff === 1 ? "Mañana" : diff < 0 && !isDone ? "Pendiente desde " + fmt(date) : fmt(date);
   const dc = (i: number) => "d" + (i % 3);
+  const myLogs = state.logs.filter((l) => !l._deleted && l.profileId === p.id);
+  const weekDone = weekSessions.filter((s) => done.has(s.id)).length;
+  const minutes7 = myLogs.filter((l) => dayDiff(l.date, today()) >= 0 && dayDiff(l.date, today()) < 7).reduce((a, l) => a + (Number(l.minutes) || 0), 0);
+  const streak = weekStreak(myLogs.map((l) => l.date));
   const color = blocks[cur] ? "d" + blockIndex[blocks[cur].type] : "d4";
   return (
     <section className="k-page">
-      <div className="k-head">
-        <div className="k-grow">
-          <p className="k-kicker">
-            Semana {session.week} · {session.block || plan.name}
-            {session.deload ? " · Descarga" : ""}
-          </p>
-          <h1 className="k-h1">{session.title}</h1>
-          {isDone && log ? (
-            <span className="k-done">
-              <Check size={15} /> Hecha el {fmt(log.date)}
-              {log.score ? " · " + log.score : ""}
+      <div className="k-hero">
+        <div className="k-head">
+          <div className="k-grow">
+            <p className="k-kicker">
+              Semana {session.week} · {session.block || plan.name}
+              {session.deload ? " · Descarga" : ""}
+            </p>
+            <h1 className="k-h1">{session.title}</h1>
+            <span className="k-hero-when">
+              {isDone && log ? (
+                <>
+                  <Check size={14} /> Hecha el {fmt(log.date)}
+                  {log.score ? " · " + log.score : ""}
+                </>
+              ) : (
+                <>
+                  {when} · {session.duration} min
+                </>
+              )}
             </span>
-          ) : (
-            <span className="k-small k-muted">
-              {when} · {session.duration} min{session.theme ? " · " + session.theme : ""}
-            </span>
-          )}
+          </div>
+          <RingMini done={plan.sessions.filter((s) => done.has(s.id)).length} total={plan.sessions.length} />
         </div>
-        <RingMini done={plan.sessions.filter((s) => done.has(s.id)).length} total={plan.sessions.length} />
+        <div className="k-hero-stats">
+          <div>
+            <b>{weekDone}/{weekSessions.length}</b>
+            <small>esta semana</small>
+          </div>
+          <div>
+            <b>{streak}</b>
+            <small>{streak === 1 ? "semana seguida" : "semanas seguidas"}</small>
+          </div>
+          <div>
+            <b>{minutes7}′</b>
+            <small>últimos 7 días</small>
+          </div>
+        </div>
       </div>
       <div className="k-days">
         {weekSessions.map((s, i) => (
@@ -317,4 +339,23 @@ function LogCard({ session, p, previous, draft, save }: { session: Session; p: P
       </div>
     </>
   );
+}
+
+/** Semanas seguidas (de lunes a domingo) con al menos un entreno, contando la actual si ya hay alguno. */
+function weekStreak(dates: string[]) {
+  const iso = (x: Date) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+  const monday = (d: string) => {
+    const x = localDate(d);
+    x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+    return iso(x);
+  };
+  const weeks = new Set(dates.map(monday));
+  const cur = localDate(monday(today()));
+  if (!weeks.has(iso(cur))) cur.setDate(cur.getDate() - 7);
+  let n = 0;
+  while (weeks.has(iso(cur))) {
+    n++;
+    cur.setDate(cur.getDate() - 7);
+  }
+  return n;
 }
