@@ -533,3 +533,7 @@ Todo en `web/src/extras.ts`:
 - **Guía por voz** (`web/src/screens/Guided.tsx`): botón «Guíame» en los bloques de activación y de calma. `guideSteps` en `extras.ts` divide el texto del bloque en pasos, respeta los «N min» explícitos y reparte el resto del tiempo. Se lee cada paso y avisa con «tres, dos, uno». Usa la preferencia de voz del cronómetro.
 - **Antes y después** (Progreso → Marcas): `evalComparison` compara la primera y la última evaluación de cada movimiento. Muestra el porcentaje de mejora, que respeta `lower` en el remo, y la cercanía al objetivo.
 - **Accesos directos:** el manifest de Pages (`scripts/pages-postbuild.mjs`) declara `shortcuts` a `#train`, `#timer`, `#nutrition` y `#progress`. Android los muestra al mantener pulsado el icono. En iPhone se puede añadir a la pantalla de inicio una URL con ese `#`.
+
+### 18.4 Barra inferior anclada
+
+La barra inferior quedaba flotando sobre el borde del iPhone porque `:root` reservaba la zona segura con `padding` y, además, la barra añadía su propio margen. Ahora `:root` define `--safeT` y `--safeB` con `env(safe-area-inset-*)`, sin padding. `body` es `position: fixed; inset: 0`. Las barras superior e inferior son `position: fixed` y suman la zona segura a su altura (`.k-tabs-in` llega hasta el borde y rellena la zona del indicador de inicio). Las páginas compensan ambas alturas. No vuelvas a añadir padding de zona segura en `:root`.
