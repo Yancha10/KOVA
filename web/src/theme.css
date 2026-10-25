@@ -358,3 +358,23 @@ html[data-theme="dark"] .k-hero{color:#1B1230}
 .k-badgepop .ic{width:118px;height:118px;border-radius:50%;display:grid;place-items:center;font-size:58px;background:conic-gradient(from 200deg,var(--sun),#FF9FB4,var(--purple),var(--blue),var(--sun));box-shadow:0 16px 44px rgba(62,123,234,.4)}
 .k-badgepop small{margin-top:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--blue)}
 .k-badgepop b{white-space:nowrap;font:800 22px var(--round);padding:8px 18px;border-radius:999px;background:var(--paper);box-shadow:var(--shadow)}
+
+/* ---------- Equipo, comparativa y guía ---------- */
+.k-bar.light{background:var(--ios-fill);display:block}
+.k-cmp{padding:10px 0}
+.k-cmp+.k-cmp{border-top:.5px solid var(--sep)}
+.k-cmp-pct{font:800 14px var(--round);padding:3px 9px;border-radius:999px}
+.k-cmp-pct.up{background:color-mix(in srgb,var(--mint) 20%,var(--paper));color:#1d8a68}
+.k-cmp-pct.down{background:color-mix(in srgb,var(--pink) 18%,var(--paper));color:#c2417f}
+.k-guided-card{position:relative;width:210px;height:210px;margin:6px auto 0}
+.k-guided-card svg{width:100%;height:100%;transform:rotate(-90deg)}
+.k-guided-card .tr{fill:none;stroke:var(--ios-fill);stroke-width:10}
+.k-guided-card .vl{fill:none;stroke:url(#k-grad);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+.k-guided-time{position:absolute;inset:0;display:grid;place-items:center;font:800 52px var(--round);letter-spacing:-1px}
+.k-guided-now{text-align:center;font:800 22px/1.25 var(--round);min-height:2.5em;padding:0 6px}
+.k-guided-list{list-style:none;margin:0;padding:0;background:var(--paper);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.k-guided-list li{display:flex;justify-content:space-between;gap:10px;padding:10px 14px;font-size:14.5px}
+.k-guided-list li+li{border-top:.5px solid var(--sep)}
+.k-guided-list li.on{background:color-mix(in srgb,var(--sun) 24%,var(--paper));font-weight:700}
+.k-guided-list li.done{color:var(--muted);text-decoration:line-through}
+.k-guided-list small{color:var(--muted);flex:none}

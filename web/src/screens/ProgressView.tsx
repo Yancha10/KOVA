@@ -6,7 +6,7 @@ import Records from "../../../app/components/Records";
 import { LineChartSVG } from "../../../app/components/Sheet";
 import { celebrate } from "../../../app/lib/fx";
 import { Seg } from "../ui";
-import { BADGES, unlocked } from "../extras";
+import { BADGES, unlocked, teamBoard, evalComparison } from "../extras";
 
 const fmt = (d: string) => localDate(d).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 const metricKeys = Object.keys(markMeta);
@@ -20,6 +20,10 @@ export default function ProgressView({
   notice,
   addMark,
   editLog,
+  profiles,
+  plans,
+  switchTo,
+  addProfile,
 }: {
   state: Store;
   p: Profile;
@@ -29,8 +33,12 @@ export default function ProgressView({
   notice: (s: string) => void;
   addMark: (metric: string) => void;
   editLog: (l: Entry) => void;
+  profiles: Profile[];
+  plans: Plan[];
+  switchTo: (id: string) => void;
+  addProfile: () => void;
 }) {
-  const [pane, setPane] = useState<"report" | "marks" | "records" | "badges" | "diary">("report");
+  const [pane, setPane] = useState<"report" | "marks" | "records" | "badges" | "team" | "diary">("report");
   const [metric, setMetric] = useState(metricKeys[0]);
   const marks = forProfile(state.marks, p.id).filter((m) => m.metric === metric).sort((a, b) => a.date.localeCompare(b.date));
   const logs = forProfile(state.logs, p.id).sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt - a.updatedAt);
@@ -47,14 +55,17 @@ export default function ProgressView({
           ["marks", "Marcas"],
           ["records", "Récords"],
           ["badges", "Logros"],
+          ["team", "Equipo"],
           ["diary", "Diario"],
         ]}
       />
       {pane === "report" && <Report state={state} p={p} plan={plan} done={done} />}
+      {pane === "team" && <Team state={state} p={p} profiles={profiles} plans={plans} switchTo={switchTo} addProfile={addProfile} />}
       {pane === "badges" && <Badges state={state} p={p} plan={plan} done={done} />}
       {pane === "records" && <Records state={state} p={p} save={(e) => put("records", e)} notice={notice} celebrate={() => celebrate()} />}
       {pane === "marks" && (
         <div className="ios-stack">
+          <Compare state={state} p={p} />
           <p className="ios-foot">Series limpias, sin llegar al fallo. Tus dosis de gimnasia se calculan con la última evaluación de cada movimiento.</p>
           <Seg label="Movimiento evaluado" value={metric} onChange={setMetric} items={metricKeys.map((k) => [k, markMeta[k].name] as const)} small />
           <div className="ios-stats">
@@ -209,6 +220,70 @@ function Badges({ state, p, plan, done }: { state: Store; p: Profile; plan: Plan
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function Compare({ state, p }: { state: Store; p: Profile }) {
+  const rows = evalComparison(state, p).filter((r) => r.n > 1);
+  if (!rows.length) return null;
+  return (
+    <div className="ios-card">
+      <h3 className="ios-section">Antes y después</h3>
+      {rows.map((r) => (
+        <div className="k-cmp" key={r.k}>
+          <div className="k-row" style={{ justifyContent: "space-between" }}>
+            <b>{r.name}</b>
+            <span className={"k-cmp-pct" + (r.change >= 0 ? " up" : " down")}>
+              {r.change >= 0 ? "▲" : "▼"} {Math.abs(Math.round(r.change))} %
+            </span>
+          </div>
+          <div className="k-small k-muted">
+            {r.first} → {r.last} {r.unit} · {fmt(r.firstDate)} → {fmt(r.lastDate)}
+          </div>
+          <div className="k-bar light"><i style={{ width: r.goalPct + "%" }} /></div>
+        </div>
+      ))}
+      <p className="ios-foot">La barra muestra lo cerca que estás del objetivo de cada movimiento.</p>
+    </div>
+  );
+}
+
+function Team({ state, p, profiles, plans, switchTo, addProfile }: { state: Store; p: Profile; profiles: Profile[]; plans: Plan[]; switchTo: (id: string) => void; addProfile: () => void }) {
+  const rows = teamBoard(state, profiles, plans);
+  const medals = ["🥇", "🥈", "🥉"];
+  const max = Math.max(1, ...rows.map((r) => r.minutes));
+  return (
+    <div className="ios-stack">
+      <div className="ios-hero-mini">
+        <span className="ios-kicker">Ranking de esta semana</span>
+        <b className="ios-bignum" style={{ fontSize: 26 }}>
+          {rows.length > 1 ? `${rows[0].p.name} va en cabeza` : "Entrena en equipo"}
+        </b>
+        <p className="ios-foot">{rows.length > 1 ? "Por sesiones; desempata el tiempo y la racha. Sin presión: lo que cuenta es sumar." : "Añade a tu pareja o a tu grupo del box: cada uno con su plan y su registro en este móvil."}</p>
+      </div>
+      <div className="ios-group">
+        {rows.map((r, i) => (
+          <button key={r.p.id} className="ios-row" onClick={() => switchTo(r.p.id)}>
+            <span style={{ fontSize: 22, width: 28, textAlign: "center" }}>{medals[i] || i + 1}</span>
+            <span className="ios-row-main">
+              <b>
+                {r.p.name}
+                {r.p.id === p.id ? " · tú" : ""}
+              </b>
+              <small>
+                {r.sessions} {r.sessions === 1 ? "sesión" : "sesiones"} · {r.minutes}′ · ⚡ {r.streak} · 🏅 {r.badges}
+                {r.prs ? ` · ⭐ ${r.prs}` : ""}
+              </small>
+              <span className="k-bar light" style={{ marginTop: 6 }}><i style={{ width: (r.minutes / max) * 100 + "%" }} /></span>
+            </span>
+          </button>
+        ))}
+      </div>
+      <button className="k-btn tint block" onClick={addProfile}>
+        + Añadir atleta
+      </button>
+      <p className="ios-foot">Cuando entrenéis juntos, al guardar la sesión podéis registrarla también para el otro con un toque.</p>
     </div>
   );
 }

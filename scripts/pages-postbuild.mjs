@@ -14,6 +14,12 @@ const manifest = {
   background_color: "#F6F0F6",
   theme_color: "#62407B",
   icons: [{ src: "icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }],
+  shortcuts: [
+    { name: "Sesión de hoy", short_name: "Hoy", url: "./#train" },
+    { name: "Cronómetro", short_name: "Reloj", url: "./#timer" },
+    { name: "Registrar agua", short_name: "Agua", url: "./#nutrition" },
+    { name: "Mi progreso", short_name: "Progreso", url: "./#progress" },
+  ],
 };
 fs.writeFileSync(path.join(out, "manifest.webmanifest"), JSON.stringify(manifest));
 fs.copyFileSync(path.join(out, "index.html"), path.join(out, "404.html"));

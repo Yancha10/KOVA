@@ -14,6 +14,7 @@ import Train from "./screens/Train";
 import PlanView, { MovementDetail } from "./screens/PlanView";
 import TimerView, { TimerPreset } from "./screens/TimerView";
 import ProgressView, { MarkForm } from "./screens/ProgressView";
+import Guided from "./screens/Guided";
 import ProfileView, { ProfileForm, CheckForm, ImportPlan, applyTheme, readTheme } from "./screens/ProfileView";
 
 const BASE = baseJSON as Plan;
@@ -28,6 +29,7 @@ type SheetState =
   | { type: "import" }
   | { type: "log"; log: Entry }
   | { type: "calendar" }
+  | { type: "guide"; title: string; text: string; minutes: number; next: () => void }
   | null;
 
 export default function App() {
@@ -169,8 +171,17 @@ export default function App() {
             step={steps[session.id] ?? 0}
             setStep={(n) => setSteps((s) => ({ ...s, [session.id]: n }))}
             draft={drafts[session.id] || ""}
-            saveLog={(e) => {
+            others={profiles.filter((x) => x.id !== p.id)}
+            guide={(b, next) => setSheet({ type: "guide", title: b.title, text: b.text, minutes: b.minutes, next })}
+            saveLog={(e, alsoFor) => {
               put("logs", e);
+              alsoFor.forEach((id) => {
+                const o = profiles.find((x) => x.id === id);
+                if (!o) return;
+                const oPlan = plans.find((x) => x.id === o.planId) || BASE;
+                const same = oPlan.sessions.some((s) => s.id === e.sessionId);
+                put("logs", { ...e, id: uid(), profileId: id, sessionId: same ? e.sessionId : null, kind: same ? "open" : "class", updatedAt: Date.now() });
+              });
               setDrafts((d) => ({ ...d, [session.id]: "" }));
               celebrate(140);
               const nx = ordered.find((s) => s.id !== session.id && !done.has(s.id));
@@ -250,6 +261,19 @@ export default function App() {
             notice={notice}
             addMark={(metric) => setSheet({ type: "mark", metric })}
             editLog={(log) => setSheet({ type: "log", log })}
+            profiles={profiles}
+            plans={plans}
+            switchTo={(id) => {
+              setActiveId(id);
+              setCur(null);
+              try {
+                localStorage.setItem("kova-active-local", id);
+              } catch {
+                /* sin almacenamiento */
+              }
+              notice("Entrena: " + (profiles.find((x) => x.id === id)?.name || ""));
+            }}
+            addProfile={() => setSheet({ type: "profile", edit: false })}
           />
         )}
         {route === "profile" && (
@@ -388,6 +412,20 @@ export default function App() {
               downloadText(`kova-${p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.ics`, text, "text/calendar");
               setSheet(null);
               notice(`${count} sesiones listas para añadir al calendario`);
+            }}
+          />
+        </Sheet>
+      )}
+      {sheet?.type === "guide" && (
+        <Sheet title="Guía por voz" close={() => setSheet(null)}>
+          <Guided
+            title={sheet.title}
+            text={sheet.text}
+            minutes={sheet.minutes}
+            done={() => {
+              const nx = sheet.next;
+              setSheet(null);
+              nx();
             }}
           />
         </Sheet>

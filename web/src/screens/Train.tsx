@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowRight, Check, Play, Timer, HeartPulse, Share2 } from "lucide-react";
+import { ArrowRight, Check, Play, Timer, HeartPulse, Share2, Mic } from "lucide-react";
 import { Store, Profile, Plan, Session, Entry, adaptSession, context, sessionDate, localDate, today, uid, dayDiff } from "../../../app/lib/engine";
 import { relatedMovements, Movement } from "../../../app/lib/movements";
 import { FIGURE_FOR } from "../figures";
@@ -23,6 +23,8 @@ export default function Train({
   openMove,
   startTimer,
   shareWeek,
+  others,
+  guide,
 }: {
   state: Store;
   p: Profile;
@@ -33,11 +35,13 @@ export default function Train({
   step: number;
   setStep: (n: number) => void;
   draft: string;
-  saveLog: (e: Entry) => void;
+  saveLog: (e: Entry, alsoFor: string[]) => void;
   openCheck: () => void;
   openMove: (m: Movement) => void;
   startTimer: (preset: TimerPreset, label: string) => void;
   shareWeek: () => void;
+  others: Profile[];
+  guide: (b: Session["blocks"][number], next: () => void) => void;
 }) {
   const adapted = adaptSession(session, state, p);
   const ctx = context(state, p);
@@ -177,9 +181,10 @@ export default function Train({
               startTimer(presetFromBlock(b.title, b.text, b.minutes, b.interval, session.cap), `S${session.week} · ${session.title} · ${b.title}`);
             }}
             rest={() => startTimer({ mode: "rest", seconds: 90 }, `Descanso · ${session.title}`)}
+            guide={() => guide(blocks[cur], () => go(cur + 1))}
           />
         ) : (
-          <LogCard key={session.id + (log?.id || "")} session={session} p={p} previous={log} draft={draft} save={saveLog} />
+          <LogCard key={session.id + (log?.id || "")} session={session} p={p} previous={log} draft={draft} save={saveLog} others={others} />
         )}
       </div>
     </section>
@@ -195,6 +200,7 @@ function BlockCard({
   nextLabel,
   startTimer,
   rest,
+  guide,
 }: {
   b: Session["blocks"][number];
   original: Session["blocks"][number];
@@ -204,6 +210,7 @@ function BlockCard({
   nextLabel: string;
   startTimer: () => void;
   rest: () => void;
+  guide: () => void;
 }) {
   const moves = relatedMovements(b.title + " " + b.text);
   const changed = adapted && b.text !== original.text;
@@ -239,6 +246,11 @@ function BlockCard({
           </>
         ) : (
           <>
+            {(b.type === "warmup" || b.type === "cooldown") && (
+              <button className="k-btn tint" onClick={guide}>
+                <Mic /> Guíame
+              </button>
+            )}
             {(b.type === "skill" || b.type === "strength") && (
               <button className="k-btn tint" onClick={rest}>
                 <Timer /> 90″
@@ -254,7 +266,8 @@ function BlockCard({
   );
 }
 
-function LogCard({ session, p, previous, draft, save }: { session: Session; p: Profile; previous?: Entry; draft: string; save: (e: Entry) => void }) {
+function LogCard({ session, p, previous, draft, save, others }: { session: Session; p: Profile; previous?: Entry; draft: string; save: (e: Entry, alsoFor: string[]) => void; others: Profile[] }) {
+  const [also, setAlso] = useState<string[]>([]);
   const [rpe, setRpe] = useState<number>(previous?.rpe || 7);
   const [minutes, setMinutes] = useState(String(previous?.minutes || session.duration));
   const [score, setScore] = useState(draft || previous?.score || "");
@@ -286,7 +299,7 @@ function LogCard({ session, p, previous, draft, save }: { session: Session; p: P
             pushHeavy: push,
             kind: previous?.kind || "open",
             updatedAt: Date.now(),
-          });
+          }, previous ? [] : also);
         }}
       >
         <span className="k-type">Registro</span>
@@ -314,6 +327,23 @@ function LogCard({ session, p, previous, draft, save }: { session: Session; p: P
             <input type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value || today())} />
           </label>
         </div>
+        {!previous && others.length > 0 && (
+          <div>
+            <span className="k-kicker">Habéis entrenado juntos</span>
+            <div className="ios-group" style={{ marginTop: 6 }}>
+              {others.map((o) => (
+                <div className="ios-row" key={o.id}>
+                  <span className="k-avatar">{o.name.charAt(0).toUpperCase()}</span>
+                  <span className="ios-row-main">
+                    <b>Registrar también para {o.name}</b>
+                    <small>Mismo resultado y esfuerzo; luego puede editarlo</small>
+                  </span>
+                  <Toggle checked={also.includes(o.id)} label={"Registrar también para " + o.name} onChange={(v) => setAlso(v ? [...also, o.id] : also.filter((x) => x !== o.id))} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {showMore ? (
           <>
             <label className="ios-field">

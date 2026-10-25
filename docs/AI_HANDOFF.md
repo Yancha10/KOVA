@@ -525,3 +525,11 @@ Todo en `web/src/extras.ts`:
 - **Recordatorios:** Plan → Semanas → «Recordatorios en mi calendario» genera un `.ics` con las sesiones pendientes de 2 a 12 semanas, a la hora elegida, con un aviso 30 minutos antes. Usa los días del perfil mediante `sessionDate`.
 
 `dayDiff(a, b)` es a − b en días: para «últimos 7 días» usa `dayDiff(today(), fecha)`.
+
+### 18.3 Equipo, guía por voz, comparativa y accesos directos
+
+- **Equipo** (Progreso → Equipo): `teamBoard` en `extras.ts` ordena a los atletas del dispositivo por sesiones de la semana, con minutos, racha, logros y récords como desempate. Tocar una fila cambia de atleta.
+- **Entrenar juntos:** en el registro aparecen interruptores «Registrar también para…» con los demás atletas. `App.tsx` crea una copia del registro para cada uno. Mantiene `sessionId` si su programa contiene esa sesión; si no, guarda `sessionId: null` y `kind: "class"`. Al editar un registro existente no se copia.
+- **Guía por voz** (`web/src/screens/Guided.tsx`): botón «Guíame» en los bloques de activación y de calma. `guideSteps` en `extras.ts` divide el texto del bloque en pasos, respeta los «N min» explícitos y reparte el resto del tiempo. Se lee cada paso y avisa con «tres, dos, uno». Usa la preferencia de voz del cronómetro.
+- **Antes y después** (Progreso → Marcas): `evalComparison` compara la primera y la última evaluación de cada movimiento. Muestra el porcentaje de mejora, que respeta `lower` en el remo, y la cercanía al objetivo.
+- **Accesos directos:** el manifest de Pages (`scripts/pages-postbuild.mjs`) declara `shortcuts` a `#train`, `#timer`, `#nutrition` y `#progress`. Android los muestra al mantener pulsado el icono. En iPhone se puede añadir a la pantalla de inicio una URL con ese `#`.

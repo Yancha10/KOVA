@@ -237,3 +237,67 @@ export function downloadText(name: string, text: string, type: string) {
   }, 800);
 }
 export type { Entry };
+
+/* ---------- Modo pareja / equipo ---------- */
+export type TeamRow = { p: Profile; sessions: number; minutes: number; streak: number; badges: number; prs: number; load: number };
+export function teamBoard(state: Store, profiles: Profile[], plans: Plan[]): TeamRow[] {
+  const from = (() => {
+    const x = localDate(today());
+    x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+    return iso(x);
+  })();
+  return profiles
+    .map((p) => {
+      const logs = forProfile(state.logs, p.id);
+      const week = logs.filter((l) => l.date >= from && l.date <= today());
+      const plan = plans.find((x) => x.id === p.planId) || plans[0];
+      const ids = new Set(plan.sessions.map((s) => s.id));
+      const done = new Set(logs.filter((l) => l.sessionId && ids.has(l.sessionId)).map((l) => l.sessionId as string));
+      return {
+        p,
+        sessions: week.length,
+        minutes: week.reduce((a, l) => a + (Number(l.minutes) || 0), 0),
+        load: week.reduce((a, l) => a + (Number(l.minutes) || 0) * (Number(l.rpe) || 0), 0),
+        streak: weekStreak(logs.map((l) => l.date)),
+        badges: unlocked({ state, p, plan, done }).length,
+        prs: (state.records || []).filter((r) => r.profileId === p.id && !r._deleted && r.date >= from).length,
+      };
+    })
+    .sort((a, b) => b.sessions - a.sessions || b.minutes - a.minutes || b.streak - a.streak);
+}
+
+/* ---------- Antes y después de las evaluaciones ---------- */
+export function evalComparison(state: Store, p: Profile) {
+  return Object.keys(markMeta)
+    .map((k) => {
+      const ms = forProfile(state.marks, p.id)
+        .filter((m) => m.metric === k)
+        .sort((a, b) => a.date.localeCompare(b.date));
+      if (!ms.length) return null;
+      const first = Number(ms[0].value), last = Number(ms[ms.length - 1].value), meta = markMeta[k];
+      const change = first ? ((meta.lower ? first - last : last - first) / first) * 100 : 0;
+      const goalPct = meta.lower ? Math.min(100, (meta.goal / Math.max(1, last)) * 100) : Math.min(100, (last / meta.goal) * 100);
+      return { k, name: meta.name, unit: meta.unit, first, last, firstDate: ms[0].date, lastDate: ms[ms.length - 1].date, change, goalPct, n: ms.length };
+    })
+    .filter(Boolean) as { k: string; name: string; unit: string; first: number; last: number; firstDate: string; lastDate: string; change: number; goalPct: number; n: number }[];
+}
+
+/* ---------- Guía por voz de un bloque ---------- */
+export function guideSteps(text: string, minutes: number) {
+  const parts = text
+    .replace(/\s+/g, " ")
+    .split(/\s*(?:\+|;|\.\s|, después|Después)\s*/i)
+    .map((s) => s.replace(/^[,.\s]+|[,.\s]+$/g, ""))
+    .filter((s) => s.length > 2)
+    .slice(0, 12);
+  const items = parts.length ? parts : [text];
+  const total = Math.max(60, minutes * 60);
+  const weights = items.map((s) => {
+    const m = s.match(/(\d+)\s*min/);
+    return m ? Number(m[1]) * 60 : 0;
+  });
+  const fixed = weights.reduce((a, b) => a + b, 0);
+  const free = items.length - weights.filter(Boolean).length;
+  const each = free ? Math.max(20, Math.round((total - Math.min(fixed, total * 0.8)) / free)) : 0;
+  return items.map((s, i) => ({ text: s.charAt(0).toUpperCase() + s.slice(1), seconds: weights[i] || each }));
+}
