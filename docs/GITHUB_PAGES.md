@@ -19,14 +19,14 @@ pnpm run preview:pages    # prueba local en http://localhost:4173
 
 ## Cómo se publica
 
-GitHub Pages sirve la rama **`gh-pages`** (raíz). Para publicar un cambio:
+GitHub Pages ya está activado y sirve la rama **`gh-pages`** (raíz). La primera publicación es el commit `80a6a65`, construido desde `main` `2d30fad`. Para publicar un cambio:
 
 ```sh
 pnpm run build:pages
 # Copia el contenido de dist-pages/ a la raíz de la rama gh-pages y haz commit/push.
 # Ejemplo con git worktree:
 git worktree add /tmp/kova-pages gh-pages
-rsync -a --delete --exclude .git dist-pages/ /tmp/kova-pages/
+cd /tmp/kova-pages && git rm -rq . && cp -a "$OLDPWD"/dist-pages/. . && cd "$OLDPWD"
 cd /tmp/kova-pages && git add -A && git commit -m "Publica KOVA en GitHub Pages" && git push origin gh-pages
 git worktree remove /tmp/kova-pages
 ```
