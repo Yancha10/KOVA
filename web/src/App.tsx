@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { BarChart3, CalendarDays, Dumbbell, Apple } from "lucide-react";
+import { BarChart3, Dumbbell, Apple, Sun } from "lucide-react";
 import baseJSON from "../../app/lib/base-plan.json";
 import { Plan, Profile, Entry, Session, live, forProfile, sessionDate, today, uid } from "../../app/lib/engine";
 import { Movement } from "../../app/lib/movements";
@@ -17,12 +17,15 @@ import PlanView, { MovementDetail } from "./screens/PlanView";
 import TimerView, { TimerPreset, presetFromBlock } from "./screens/TimerView";
 import ProgressView, { MarkForm } from "./screens/ProgressView";
 import Guided from "./screens/Guided";
+import Home from "./screens/Home";
+import { WodLog, StrengthLog, MobilityList, Onboarding } from "./screens/Logs";
+import { Seg } from "./ui";
 import ProfileView, { ProfileForm, CheckForm, ImportPlan, applyTheme, readTheme } from "./screens/ProfileView";
 
 const BASE = baseJSON as Plan;
-type Route = "train" | "plan" | "timer" | "nutrition" | "progress" | "profile";
-const ROUTES: Route[] = ["train", "plan", "timer", "nutrition", "progress", "profile"];
-const TITLES: Record<Route, string> = { train: "Entrenar", plan: "Plan", timer: "Cronómetro", nutrition: "Nutrición", progress: "Progreso", profile: "Perfil" };
+type Route = "home" | "train" | "plan" | "timer" | "nutrition" | "progress" | "profile";
+const ROUTES: Route[] = ["home", "train", "plan", "timer", "nutrition", "progress", "profile"];
+const TITLES: Record<Route, string> = { home: "Hoy", train: "Entrenar", plan: "Plan", timer: "Cronómetro", nutrition: "Nutrición", progress: "Progreso", profile: "Perfil" };
 type SheetState =
   | { type: "move"; m: Movement }
   | { type: "check" }
@@ -32,13 +35,18 @@ type SheetState =
   | { type: "log"; log: Entry }
   | { type: "calendar" }
   | { type: "guide"; title: string; text: string; minutes: number; next: () => void }
+  | { type: "wod" }
+  | { type: "strength" }
+  | { type: "mobility" }
   | null;
 
 export default function App() {
   const store = useLocalStore();
   const { state, ready, put, putProfile, putPlan, integrate, snapshot, saveError } = store;
   const toast = useToast();
-  const [route, setRoute] = useState<Route>("train");
+  const [route, setRoute] = useState<Route>("home");
+  const [trainPane, setTrainPane] = useState<"session" | "plan">("session");
+  const [onboarded, setOnboarded] = useState(true);
   const [activeId, setActiveId] = useState("");
   const [cur, setCur] = useState<string | null>(null);
   const [steps, setSteps] = useState<Record<string, number>>({});
@@ -57,23 +65,31 @@ export default function App() {
     const on = () => readTheme() === "system" && applyTheme("system");
     media.addEventListener?.("change", on);
     try {
+      setOnboarded(localStorage.getItem("kova-onboarded") === "1");
       setActiveId(localStorage.getItem("kova-active-local") || "");
     } catch {
       /* sin almacenamiento */
     }
-    const h = location.hash.slice(1) as Route;
-    if (ROUTES.includes(h)) setRoute(h);
-    const onHash = () => {
-      const r = location.hash.slice(1) as Route;
-      if (ROUTES.includes(r)) setRoute(r);
+    const fromHash = (h: string) => {
+      if (h === "plan") {
+        setTrainPane("plan");
+        setRoute("train");
+      } else if (ROUTES.includes(h as Route)) setRoute(h as Route);
     };
+    fromHash(location.hash.slice(1));
+    const onHash = () => fromHash(location.hash.slice(1));
     window.addEventListener("hashchange", onHash);
     return () => {
       media.removeEventListener?.("change", on);
       window.removeEventListener("hashchange", onHash);
     };
   }, []);
-  const go = useCallback((r: Route) => {
+  const go = useCallback((r0: Route) => {
+    let r = r0;
+    if (r === "plan") {
+      setTrainPane("plan");
+      r = "train";
+    }
     setRoute(r);
     setSheet(null);
     try {
@@ -141,8 +157,8 @@ export default function App() {
     go("timer");
   };
   const tabs: [Route, string, React.ReactNode][] = [
+    ["home", "Hoy", <Sun key="h" />],
     ["train", "Entrenar", <Dumbbell key="t" />],
-    ["plan", "Plan", <CalendarDays key="p" />],
     ["timer", "Cronómetro", null],
     ["nutrition", "Nutrición", <Apple key="n" />],
     ["progress", "Progreso", <BarChart3 key="g" />],
@@ -157,7 +173,7 @@ export default function App() {
             <span className="k-logo" aria-hidden="true">
               k
             </span>
-            <span className="k-title">{route === "train" ? "KOVA" : TITLES[route]}</span>
+            <span className="k-title">{route === "home" ? "KOVA" : TITLES[route]}</span>
           </div>
           <button className="k-chip" aria-label={"Perfil de " + p.name} onClick={() => go("profile")}>
             <span className="k-avatar">{p.name.charAt(0).toUpperCase()}</span>
@@ -166,7 +182,42 @@ export default function App() {
         </div>
       </header>
       <main className={"k-view" + (route === "timer" ? " noscroll" : "")}>
+        {route === "home" && (
+          <Home
+            state={state}
+            p={p}
+            plan={plan}
+            next={session}
+            done={done}
+            go={(r) => go(r)}
+            act={(a) => {
+              if (a === "wod" || a === "strength" || a === "mobility" || a === "check") setSheet({ type: a });
+              if (a === "timer") go("timer");
+              if (a === "box") setBox(true);
+              if (a === "water") {
+                const t = today();
+                const d = (state.nutrition || []).find((x) => x.id === dayId(p.id, t) && !x._deleted) || emptyDay(p.id, t);
+                put("nutrition", { ...d, water: Math.min(20000, (d.water || 0) + 500), updatedAt: Date.now() });
+                haptic(15);
+                notice("+500 ml de agua");
+              }
+            }}
+          />
+        )}
         {route === "train" && (
+          <div className="k-trainpane">
+            <Seg
+              label="Entrenar"
+              value={trainPane}
+              onChange={setTrainPane}
+              items={[
+                ["session", "Sesión"],
+                ["plan", "Plan"],
+              ]}
+            />
+          </div>
+        )}
+        {route === "train" && trainPane === "session" && (
           <Train
             state={state}
             p={p}
@@ -245,7 +296,7 @@ export default function App() {
             }}
           />
         )}
-        {route === "plan" && (
+        {route === "train" && trainPane === "plan" && (
           <PlanView
             state={state}
             p={p}
@@ -255,6 +306,7 @@ export default function App() {
             next={next?.id || null}
             train={(id) => {
               setCur(id);
+              setTrainPane("session");
               go("train");
             }}
             openMove={(m) => setSheet({ type: "move", m })}
@@ -475,6 +527,60 @@ export default function App() {
             }}
           />
         </Sheet>
+      )}
+      {sheet?.type === "wod" && (
+        <Sheet title="Registrar WOD" close={() => setSheet(null)}>
+          <WodLog
+            state={state}
+            p={p}
+            save={(log, rec) => {
+              put("logs", log);
+              if (rec) put("records", rec);
+              setSheet(null);
+              celebrate(140);
+              haptic([20, 30, 40]);
+              notice(rec ? `WOD guardado y añadido a tus récords` : "WOD guardado");
+            }}
+          />
+        </Sheet>
+      )}
+      {sheet?.type === "strength" && (
+        <Sheet title="Fuerza" close={() => setSheet(null)}>
+          <StrengthLog
+            state={state}
+            p={p}
+            save={(log, rec) => {
+              put("logs", log);
+              if (rec) put("records", rec);
+              setSheet(null);
+              celebrate(140);
+              haptic([20, 30, 40]);
+              notice("Fuerza guardada · " + String(log.score));
+            }}
+          />
+        </Sheet>
+      )}
+      {sheet?.type === "mobility" && (
+        <Sheet title="Movilidad" close={() => setSheet(null)}>
+          <MobilityList pick={(m) => setSheet({ type: "guide", title: m.name, text: m.text, minutes: m.minutes, next: () => notice("¡Movilidad hecha!") })} />
+        </Sheet>
+      )}
+      {!onboarded && profiles.length === 1 && logs.length === 0 && p.name === "Mi perfil" && (
+        <Onboarding
+          p={p}
+          finish={(prof, marks) => {
+            putProfile(prof);
+            marks.forEach((m) => put("marks", m));
+            try {
+              localStorage.setItem("kova-onboarded", "1");
+            } catch {
+              /* sin almacenamiento */
+            }
+            setOnboarded(true);
+            celebrate(160);
+            notice(`¡Bienvenido, ${prof.name}!`);
+          }}
+        />
       )}
       {box && (
         <BoxMode

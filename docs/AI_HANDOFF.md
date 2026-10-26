@@ -562,3 +562,33 @@ No implementado, y por qué:
 - **Avisos con la pantalla bloqueada:** en iOS, una web solo puede enviarlos con un servidor de push; los recordatorios por calendario cubren el caso.
 - **Apple Salud:** no es accesible desde la web.
 - **Coach con IA:** necesitaría una clave de API y un coste por uso; el coach actual funciona con reglas.
+
+### 18.6 Super app: Hoy, WOD libre, fuerza, movilidad, perfil atleta y bienvenida
+
+Tras repasar las apps de referencia (SugarWOD, Beyond the Whiteboard, Wodify, TrainHeroic, Hevy y Strong) se añadió:
+
+- **Pestaña Hoy** (`web/src/screens/Home.tsx`), que es la portada por defecto (`#home`):
+  - saludo según la hora y tres anillos animados de la semana (entrenos /3, minutos /180, agua del día);
+  - tarjeta de la próxima sesión;
+  - seis accesos rápidos: WOD, fuerza, cronómetro, modo box, movilidad y +500 ml;
+  - recuperación y racha, barras de minutos por día, radar «perfil atleta» con nivel global y últimos récords.
+- **Perfil atleta** (`athleteScores`): seis áreas de 0 a 100.
+  - Gimnasia: porcentaje del objetivo de las evaluaciones.
+  - Fuerza: back squat, deadlift y clean frente al peso corporal del plan nutricional; sin peso, cuenta récords y sesiones de fuerza.
+  - Motor: remo y minutos en 28 días.
+  - Constancia: sesiones en 28 días frente a 12.
+  - Recuperación: media de los check-ins.
+  - Nutrición: hábitos y agua de 7 días.
+- **Entrenar** agrupa Sesión y Plan con un segmentado fijo (`trainPane`). `#plan` sigue funcionando y abre Entrenar → Plan.
+- **Registrar WOD** (`web/src/screens/Logs.tsx`, datos en `web/src/library.ts`):
+  - 28 benchmarks (Girls, Héroes y otros) con descripción, pesos Rx y escalado; muestra la mejor marca previa;
+  - también WOD libre (for time, AMRAP, EMOM u otro) con descripción;
+  - guarda un log con `kind: "wod"`, `sessionId: null` y `rx`; si es un benchmark con resultado válido, añade además un récord.
+- **Fuerza:**
+  - series de repeticiones × kg con botones de ±2,5 kg, 1RM estimado (Epley) y volumen;
+  - guarda un log con `kind: "strength"`, `lift` y `sets`;
+  - solo los singles crean un récord en kg.
+- **Movilidad:** 6 rutinas (`MOBILITY`) guiadas por voz con `Guided`.
+- **Bienvenida:**
+  - se muestra si hay un único perfil, llamado «Mi perfil», sin registros y sin `kova-onboarded`;
+  - pide nombre, días, objetivo, pull-ups y T2B; las dos cifras se guardan como evaluaciones iniciales para que las dosis se ajusten desde el primer día.
